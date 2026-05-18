@@ -295,6 +295,13 @@ function occKey(id,ds)      { return `${id}_${ds}`; }
 function isPaidOcc(id, ds) {
   const bill = bills.find(b => b.id === id);
   if (!bill) return false;
+  // DD bills are considered paid by default UNLESS the user has explicitly unchecked them (ddOvrKeys)
+  if (bill.dd) {
+    const k = occKey(id, ds);
+    if (ddOvrKeys.includes(k)) return false; // user marked DD as failed
+    return true; // auto-paid
+  }
+  // Regular bills: paid only if amount paid meets expected amount
   return getAmtPaid(bill, ds) >= getExpectedAmount(bill, ds);
 }
 function getExpectedAmount(bill, ds) {
@@ -373,7 +380,14 @@ function switchTab(tab){
   document.getElementById('tab-'+tab).classList.add('active');
   document.getElementById('panel-'+tab).classList.add('active');
 }
-function renderAll(){ renderOverview(); renderProjection(); renderBills(); renderPayday(); renderFund(); }
+function renderAll(){
+  const safePace = calculateSafePace(); // compute once, pass to all panels that need it
+  renderOverview(safePace);
+  renderProjection(safePace);
+  renderBills();
+  renderPayday();
+  renderFund(safePace);
+}
 
 // ─── ENGINE SIMULATION LOOKUPS ────────────────────────────
 function getPayCycleDates(startDj, freq, index) {
@@ -426,11 +440,11 @@ function calculateSafePace() {
 }
 
 // ─── OVERVIEW PANEL ───────────────────────────────────────
-function renderOverview() {
+function renderOverview(safePace) {
+  if (safePace === undefined) safePace = calculateSafePace();
   const pay = settings.paydayPay || 0;
   const pv = settings.paydayDate || tod();
   const freq = settings.paydayFreq || 'fortnightly';
-  const safePace = calculateSafePace();
   
   const start = dayjs(pv);
   const dates = getPayCycleDates(start, freq, 0);
@@ -568,8 +582,8 @@ function renderOverview() {
 }
 
 // ─── PROJECTION PANEL ─────────────────────────────────────
-function renderProjection() {
-  const safePace = calculateSafePace();
+function renderProjection(safePace) {
+  if (safePace === undefined) safePace = calculateSafePace();
   const simStart = dayjs(settings.paydayDate || tod());
   const freq = settings.paydayFreq || 'fortnightly';
   let currentSimBalance = settings.balance || 0;
@@ -950,8 +964,35 @@ function renderPayday(){
   document.getElementById('panel-payday').innerHTML=summaryHtml+odHtml+fundSection+paySection;
 }
 
-// ─── FUND PANEL ───────────────────────────────────────────
-function renderFund(){
+// tapPaid: toggle paid state for a specific bill occurrence.
+// For DD bills, tapping when pre-checked unchecks (marks failed).
+// For regular bills, tapping marks paid; tapping again marks unpaid.
+async function tapPaid(billId, ds) {
+  const k = occKey(billId, ds);
+  const bill = bills.find(b => b.id === billId);
+  if (!bill) return;
+
+  if (bill.dd) {
+    // DD bills: pre-checked by default (isPaidOcc returns true when no override).
+    // Tapping adds/removes a "failed DD" override via ddOvrKeys.
+    if (ddOvrKeys.includes(k)) {
+      ddOvrKeys = ddOvrKeys.filter(x => x !== k); // remove override → auto-paid again
+    } else {
+      ddOvrKeys = [...ddOvrKeys, k]; // add override → mark as failed/unpaid
+    }
+  } else {
+    // Regular bills: toggle paidKeys
+    if (paidKeys.includes(k)) {
+      paidKeys = paidKeys.filter(x => x !== k);
+    } else {
+      paidKeys = [...paidKeys, k];
+    }
+  }
+  await savePaid();
+  renderPayday();
+}
+function renderFund(safePace){
+  if (safePace === undefined) safePace = calculateSafePace();
   const balance=settings.balance||0, asOf=settings.balanceDate||tod();
   const asOfDj=dayjs(asOf);
 
@@ -986,7 +1027,7 @@ function renderFund(){
     });
   });
 
-  const thisFn = calculateSafePace();
+  const thisFn = safePace;
   const behind = thisFn > (steady + 0.01);
   const pillCls = !behind ? 'sp-g' : 'sp-r';
   const pillTxt = !behind ? '✓ On track' : '⚠ Catching up';
