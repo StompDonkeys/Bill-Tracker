@@ -15,242 +15,148 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: #f5f5f0;
-      color: #1a1a18;
-      overflow-x: hidden;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #f5f5f0; color: #1a1a18; overflow-x: hidden; }
 
-    /* ── LOGIN ── */
-    #loginScreen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 2rem;
-      text-align: center;
-    }
-    .login-icon {
-      width: 80px; height: 80px;
-      background: #639922;
-      border-radius: 22px;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 1.5rem;
-      font-size: 40px;
-    }
+    /* LOGIN */
+    #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; text-align: center; }
+    .login-icon  { width: 80px; height: 80px; background: #639922; border-radius: 22px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 40px; }
     .login-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
     .login-sub   { font-size: 15px; color: #666; line-height: 1.5; max-width: 280px; margin: 0 auto 2rem; }
-    .btn-google  {
-      display: flex; align-items: center; gap: 12px;
-      padding: 13px 24px;
-      background: #fff; border: 1px solid #ddd; border-radius: 14px;
-      font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
-      transition: box-shadow 0.2s;
-    }
-    .btn-google:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
+    .btn-google  { display: flex; align-items: center; gap: 12px; padding: 13px 24px; background: #fff; border: 1px solid #ddd; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: box-shadow 0.2s; }
+    .btn-google:hover { box-shadow: 0 2px 10px rgba(0,0,0,.12); }
     .google-logo { width: 20px; height: 20px; }
     .login-error { margin-top: 12px; font-size: 13px; color: #ef4444; }
 
-    /* ── MAIN APP ── */
+    /* APP SHELL */
     #mainApp { display: none; min-height: 100vh; }
-
-    .topbar {
-      position: sticky; top: 0; z-index: 100;
-      background: #fff; border-bottom: 1px solid #e8e8e0;
-      padding: 12px 16px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .topbar-title  { font-size: 17px; font-weight: 700; color: #639922; }
-    .topbar-right  { display: flex; align-items: center; gap: 8px; }
-    .user-avatar   { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; display: none; }
-    .btn-signout   { background: none; border: none; cursor: pointer; color: #aaa; font-size: 13px; font-family: inherit; padding: 4px 8px; }
+    .topbar  { position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 1px solid #e8e8e0; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .topbar-title { font-size: 17px; font-weight: 700; color: #639922; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
+    .user-avatar  { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; display: none; }
+    .btn-signout  { background: none; border: none; cursor: pointer; color: #aaa; font-size: 13px; font-family: inherit; padding: 4px 8px; }
     .btn-signout:hover { color: #333; }
-
     .scroll-content { padding: 16px 16px calc(80px + env(safe-area-inset-bottom, 0px)); }
-
-    .panel { display: none; }
-    .panel.active { display: block; }
-
-    /* bottom nav */
-    .tabbar {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-      background: #fff; border-top: 1px solid #e8e8e0;
-      display: flex;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-    .tabbar-item {
-      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 10px 0 8px; gap: 3px;
-      background: none; border: none; cursor: pointer;
-      color: #bbb; font-size: 10px; font-weight: 600; font-family: inherit;
-      transition: color 0.15s;
-    }
+    .panel { display: none; } .panel.active { display: block; }
+    .tabbar      { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: #fff; border-top: 1px solid #e8e8e0; display: flex; padding-bottom: env(safe-area-inset-bottom, 0px); }
+    .tabbar-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 8px; gap: 3px; background: none; border: none; cursor: pointer; color: #bbb; font-size: 10px; font-weight: 600; font-family: inherit; transition: color 0.15s; }
     .tabbar-item i { font-size: 22px; }
     .tabbar-item.active { color: #639922; }
 
-    /* ── COMMON COMPONENTS ── */
-    .card { background: #fff; border-radius: 16px; border: 1px solid #e8e8e0; padding: 16px; margin-bottom: 12px; }
+    /* COMPONENTS */
+    .card          { background: #fff; border-radius: 16px; border: 1px solid #e8e8e0; padding: 16px; margin-bottom: 12px; }
     .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #aaa; margin: 16px 0 8px; }
     .section-label:first-child { margin-top: 0; }
-
-    .field         { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+    .field        { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
     .field:last-child { margin-bottom: 0; }
-    .field label   { font-size: 12px; font-weight: 700; color: #555; }
-    .field input, .field select {
-      height: 44px; border: 1px solid #e0e0d8; border-radius: 10px;
-      padding: 0 12px; font-size: 15px; background: #fafaf8; color: #1a1a18;
-      font-family: inherit; outline: none; -webkit-appearance: none; appearance: none;
-    }
+    .field label  { font-size: 12px; font-weight: 700; color: #555; }
+    .field input, .field select { height: 44px; border: 1px solid #e0e0d8; border-radius: 10px; padding: 0 12px; font-size: 15px; background: #fafaf8; color: #1a1a18; font-family: inherit; outline: none; -webkit-appearance: none; appearance: none; }
     .field input:focus, .field select:focus { border-color: #639922; background: #fff; }
-    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field-row    { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    .dd-row {
-      display: flex; align-items: center; gap: 12px;
-      padding: 12px; background: #fafaf8; border-radius: 10px; border: 1px solid #e8e8e0;
-      margin-bottom: 12px;
-    }
-    .dd-label { flex: 1; }
-    .dd-label strong { font-size: 14px; font-weight: 600; display: block; }
-    .dd-label span   { font-size: 12px; color: #888; }
-    .toggle { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+    .toggle-row   { display: flex; align-items: center; gap: 12px; padding: 12px; background: #fafaf8; border-radius: 10px; border: 1px solid #e8e8e0; margin-bottom: 10px; }
+    .toggle-label { flex: 1; }
+    .toggle-label strong { font-size: 14px; font-weight: 600; display: block; }
+    .toggle-label span   { font-size: 12px; color: #888; }
+    .toggle  { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
     .toggle input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; inset: 0; background: #ddd; border-radius: 26px; cursor: pointer; transition: background 0.2s; }
+    .slider  { position: absolute; inset: 0; background: #ddd; border-radius: 26px; cursor: pointer; transition: background 0.2s; }
     .slider::before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
     .toggle input:checked + .slider { background: #639922; }
     .toggle input:checked + .slider::before { transform: translateX(20px); }
 
-    .btn-primary {
-      width: 100%; height: 48px; background: #639922; color: #fff;
-      border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
-      font-family: inherit; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: background 0.15s, transform 0.1s;
-      margin-top: 4px;
-    }
+    .btn-primary  { width: 100%; height: 48px; background: #639922; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.15s, transform 0.1s; margin-top: 4px; }
     .btn-primary:hover  { background: #527f1c; }
     .btn-primary:active { transform: scale(0.98); }
     .btn-primary:disabled { background: #bbb; cursor: not-allowed; transform: none; }
 
-    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-    .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
-    .metric { background: #f5f5f0; border-radius: 12px; padding: 12px; }
-    .m-label { font-size: 11px; color: #888; margin-bottom: 4px; }
-    .m-value { font-size: 17px; font-weight: 700; }
-    .m-sub   { font-size: 11px; color: #888; margin-top: 2px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
+    .grid2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 12px; }
+    .metric   { background: #f5f5f0; border-radius: 12px; padding: 12px; }
+    .m-label  { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .m-value  { font-size: 17px; font-weight: 700; }
+    .m-sub    { font-size: 11px; color: #888; margin-top: 2px; }
 
     .bill-list { display: flex; flex-direction: column; gap: 8px; }
-    .bill-item {
-      background: #fff; border: 1px solid #e8e8e0; border-radius: 14px;
-      padding: 12px 14px; display: flex; align-items: center; gap: 12px;
-      animation: slideIn 0.18s ease;
-    }
-    @keyframes slideIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
-    .bill-icon  { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-    .bill-info  { flex: 1; min-width: 0; }
-    .bill-name  { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-    .bill-meta  { font-size: 12px; color: #888; margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .badge      { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
-    .badge-dd   { background: #dbeafe; color: #1e40af; }
-    .bill-right { text-align: right; flex-shrink: 0; }
-    .bill-amt   { font-size: 15px; font-weight: 700; }
-    .bill-fn    { font-size: 11px; color: #888; }
-    .btn-del    { background: none; border: none; cursor: pointer; color: #ccc; padding: 6px; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s, background 0.15s; }
+    .bill-item { background: #fff; border: 1px solid #e8e8e0; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; animation: si 0.18s ease; }
+    @keyframes si { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+    .bill-cat  { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .bill-info { flex: 1; min-width: 0; }
+    .bill-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .bill-meta { font-size: 12px; color: #888; margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .badge     { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
+    .badge-dd  { background: #dbeafe; color: #1e40af; }
+    .badge-exc { background: #f3f4f6; color: #555; }
+    .bill-right{ text-align: right; flex-shrink: 0; }
+    .bill-amt  { font-size: 15px; font-weight: 700; }
+    .bill-fn   { font-size: 11px; color: #888; }
+    .btn-del   { background: none; border: none; cursor: pointer; color: #ccc; padding: 6px; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s, background 0.15s; }
     .btn-del:hover { color: #ef4444; background: #fef2f2; }
 
     .empty { text-align: center; padding: 2.5rem 1rem; color: #bbb; font-size: 14px; }
     .empty i { font-size: 38px; display: block; margin-bottom: 8px; }
     .error-msg { font-size: 12px; color: #ef4444; margin: 6px 0; display: none; }
 
-    /* ── PAYDAY ── */
     .prog-wrap { background: #e8e8e0; border-radius: 6px; height: 8px; overflow: hidden; margin-bottom: 12px; }
-    .prog-fill  { height: 100%; border-radius: 6px; background: #639922; transition: width 0.4s; }
+    .prog-fill { height: 100%; border-radius: 6px; background: #639922; transition: width 0.4s; }
     .prog-fill.over { background: #ef4444; }
 
-    .fn-list { display: flex; flex-direction: column; gap: 8px; }
-    .fn-item {
-      background: #fff; border: 1px solid #e8e8e0; border-radius: 14px;
-      padding: 12px 14px; display: flex; align-items: center; gap: 12px;
-      transition: opacity 0.2s;
-    }
+    .fn-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .fn-item { background: #fff; border: 1px solid #e8e8e0; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; transition: opacity 0.2s; }
     .fn-item.paid { opacity: 0.45; }
     .fn-item.paid .fn-name { text-decoration: line-through; }
-    .fn-name { font-size: 14px; font-weight: 600; flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px; }
+    .fn-item.overdue { border-color: #fecaca; }
+    .fn-name { font-size: 14px; font-weight: 600; flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
     .fn-due  { font-size: 12px; color: #888; }
     .fn-amt  { font-size: 14px; font-weight: 700; flex-shrink: 0; }
-    .chk {
-      width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ddd;
-      background: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; transition: all 0.15s; color: transparent;
-    }
+    .chk     { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ddd; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; color: transparent; }
     .chk.on  { background: #639922; border-color: #639922; color: #fff; }
-    .chk.dd  { cursor: default; }
 
-    /* ── FUND ── */
-    .hero {
-      background: #639922; border-radius: 16px; padding: 22px;
-      text-align: center; color: #fff; margin-bottom: 12px;
-    }
+    .banner      { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; padding: 9px 12px; border-radius: 10px; margin-bottom: 10px; }
+    .banner-red  { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .banner-blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .banner-grey { background: #f3f4f6; color: #555; border: 1px solid #e5e7eb; }
+
+    .hero        { background: #639922; border-radius: 16px; padding: 22px; text-align: center; color: #fff; margin-bottom: 12px; }
     .hero-label  { font-size: 12px; opacity: .8; margin-bottom: 4px; }
     .hero-amount { font-size: 40px; font-weight: 700; }
     .hero-sub    { font-size: 12px; opacity: .75; margin-top: 4px; line-height: 1.4; }
-
-    .cu-selector { display: flex; gap: 6px; margin-bottom: 12px; }
-    .cu-btn {
-      flex: 1; height: 38px; border: 1px solid #e0e0d8; border-radius: 10px;
-      background: #fafaf8; color: #888; font-size: 12px; font-weight: 700;
-      font-family: inherit; cursor: pointer; transition: all 0.15s;
-    }
+    .cu-sel  { display: flex; gap: 6px; margin-bottom: 12px; }
+    .cu-btn  { flex: 1; height: 38px; border: 1px solid #e0e0d8; border-radius: 10px; background: #fafaf8; color: #888; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.15s; }
     .cu-btn.on { background: #639922; color: #fff; border-color: #639922; }
+    .spill   { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+    .sp-g { background: #dcfce7; color: #166534; }
+    .sp-a { background: #fef3c7; color: #92400e; }
+    .sp-r { background: #fee2e2; color: #991b1b; }
 
-    .status-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
-    .pill-g { background: #dcfce7; color: #166534; }
-    .pill-a { background: #fef3c7; color: #92400e; }
-    .pill-r { background: #fee2e2; color: #991b1b; }
-
-    .lib-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0e8; }
+    .lib-row  { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0e8; }
     .lib-row:last-child { border-bottom: none; }
-    .lib-info  { flex: 1; min-width: 0; }
-    .lib-name  { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
-    .lib-freq  { font-size: 11px; color: #888; margin-top: 2px; }
-    .lib-bar-w { width: 72px; height: 4px; background: #e8e8e0; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
-    .lib-bar   { height: 100%; background: #639922; border-radius: 4px; }
-    .lib-right { text-align: right; flex-shrink: 0; }
-    .lib-amt   { font-size: 13px; font-weight: 700; }
-    .lib-pct   { font-size: 11px; color: #888; }
+    .lib-info { flex: 1; min-width: 0; }
+    .lib-name { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .lib-sub  { font-size: 11px; color: #888; margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .lib-bw   { width: 60px; height: 4px; background: #e8e8e0; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+    .lib-b    { height: 100%; background: #639922; border-radius: 4px; }
+    .lib-r    { text-align: right; flex-shrink: 0; }
+    .lib-amt  { font-size: 13px; font-weight: 700; }
+    .lib-pct  { font-size: 11px; color: #888; }
 
     .tl-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f0f0e8; }
     .tl-row:last-child { border-bottom: none; }
-    .tl-fn    { font-size: 12px; color: #888; width: 48px; flex-shrink: 0; }
-    .tl-bar-w { flex: 1; height: 6px; background: #e8e8e0; border-radius: 6px; overflow: hidden; }
-    .tl-bar   { height: 100%; border-radius: 6px; background: #639922; }
-    .tl-bar.s { background: #9FE1CB; }
-    .tl-amt   { font-size: 13px; font-weight: 700; width: 72px; text-align: right; flex-shrink: 0; }
-    .tl-tag   { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
-    .tag-cu   { background: #dcfce7; color: #166534; }
-    .tag-st   { background: #e0f2fe; color: #075985; }
-
+    .tl-fn  { font-size: 12px; color: #888; width: 48px; flex-shrink: 0; }
+    .tl-bw  { flex: 1; height: 6px; background: #e8e8e0; border-radius: 6px; overflow: hidden; }
+    .tl-b   { height: 100%; border-radius: 6px; background: #639922; }
+    .tl-b.s { background: #9FE1CB; }
+    .tl-amt { font-size: 13px; font-weight: 700; width: 72px; text-align: right; flex-shrink: 0; }
+    .tl-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
+    .tag-cu { background: #dcfce7; color: #166534; }
+    .tag-st { background: #e0f2fe; color: #075985; }
     .text-r { color: #ef4444; }
-    .text-g { color: #639922; }
 
-    .saving-toast {
-      position: fixed; top: 62px; right: 14px; z-index: 300;
-      background: #1a1a18; color: #fff; font-size: 12px; font-weight: 600;
-      padding: 6px 14px; border-radius: 20px;
-      opacity: 0; transition: opacity 0.25s; pointer-events: none;
-    }
+    .saving-toast { position: fixed; top: 62px; right: 14px; z-index: 300; background: #1a1a18; color: #fff; font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: 20px; opacity: 0; transition: opacity 0.25s; pointer-events: none; }
     .saving-toast.show { opacity: 1; }
-
-    .loading { display: flex; align-items: center; justify-content: center; padding: 3rem; color: #aaa; gap: 10px; }
   </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     LOGIN SCREEN
-══════════════════════════════════════ -->
 <div id="loginScreen">
   <div class="login-icon">💰</div>
   <h1 class="login-title">Bills Tracker</h1>
@@ -267,202 +173,169 @@
   <p class="login-error" id="loginError"></p>
 </div>
 
-<!-- ══════════════════════════════════════
-     MAIN APP
-══════════════════════════════════════ -->
 <div id="mainApp">
   <header class="topbar">
     <span class="topbar-title">💰 Bills Tracker</span>
     <div class="topbar-right">
-      <img class="user-avatar" id="userAvatar" src="" alt="Profile photo">
+      <img class="user-avatar" id="userAvatar" src="" alt="Profile">
       <button class="btn-signout" onclick="doSignOut()">Sign out</button>
     </div>
   </header>
-
   <main class="scroll-content">
     <div class="panel active" id="panel-bills"></div>
-    <div class="panel" id="panel-payday"></div>
-    <div class="panel" id="panel-fund"></div>
+    <div class="panel"        id="panel-payday"></div>
+    <div class="panel"        id="panel-fund"></div>
   </main>
-
   <nav class="tabbar" aria-label="Main navigation">
-    <button class="tabbar-item active" id="tab-bills" onclick="switchTab('bills')">
-      <i class="ti ti-list" aria-hidden="true"></i>My bills
-    </button>
-    <button class="tabbar-item" id="tab-payday" onclick="switchTab('payday')">
-      <i class="ti ti-calendar-dollar" aria-hidden="true"></i>Payday
-    </button>
-    <button class="tabbar-item" id="tab-fund" onclick="switchTab('fund')">
-      <i class="ti ti-piggy-bank" aria-hidden="true"></i>Bills fund
-    </button>
+    <button class="tabbar-item active" id="tab-bills"  onclick="switchTab('bills')"><i class="ti ti-list" aria-hidden="true"></i>My bills</button>
+    <button class="tabbar-item"        id="tab-payday" onclick="switchTab('payday')"><i class="ti ti-calendar-dollar" aria-hidden="true"></i>Payday</button>
+    <button class="tabbar-item"        id="tab-fund"   onclick="switchTab('fund')"><i class="ti ti-piggy-bank" aria-hidden="true"></i>Bills fund</button>
   </nav>
 </div>
 
 <div class="saving-toast" id="toast">Saved ✓</div>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
-
 <script>
-// ══════════════════════════════════════
-// CONSTANTS
-// ══════════════════════════════════════
+// ─── CONSTANTS ────────────────────────────────────────────
 const FREQ_LABELS = {weekly:'Weekly',fortnightly:'Fortnightly',monthly:'Monthly',quarterly:'Quarterly',annual:'Annual'};
 const FREQ_COLORS = {
-  weekly:      {bg:'#dcfce7',color:'#166534'},
-  fortnightly: {bg:'#d1fae5',color:'#065f46'},
-  monthly:     {bg:'#dbeafe',color:'#1e40af'},
-  quarterly:   {bg:'#fef3c7',color:'#92400e'},
+  weekly:      {bg:'#dcfce7',color:'#166534'}, fortnightly:{bg:'#d1fae5',color:'#065f46'},
+  monthly:     {bg:'#dbeafe',color:'#1e40af'}, quarterly:  {bg:'#fef3c7',color:'#92400e'},
   annual:      {bg:'#ede9fe',color:'#5b21b6'}
 };
 const CAT_ICONS = {home:'🏠',utilities:'⚡',subscriptions:'📱',insurance:'🛡️',transport:'🚗',health:'❤️',other:'📋'};
 const CAT_BG    = {home:'#dcfce7',utilities:'#fef3c7',subscriptions:'#dbeafe',insurance:'#ede9fe',transport:'#d1fae5',health:'#fee2e2',other:'#f3f4f6'};
-const CYCLE_DAYS = {weekly:7,fortnightly:14,monthly:365.25/12,quarterly:365.25/4,annual:365.25};
-const TO_FN  = {weekly:52/26,fortnightly:1,monthly:12/26,quarterly:4/26,annual:1/26};
-const TO_YR  = {weekly:52,fortnightly:26,monthly:12,quarterly:4,annual:1};
+const TO_FN = {weekly:52/26,fortnightly:1,monthly:12/26,quarterly:4/26,annual:1/26};
+const TO_YR = {weekly:52,fortnightly:26,monthly:12,quarterly:4,annual:1};
 
-// ══════════════════════════════════════
-// STATE
-// ══════════════════════════════════════
-let bills    = [];
-let paidIds  = [];
-let settings = { balance:0, balanceDate:today(), catchupFortnights:2, paydayDate:today(), setAside:0 };
-let uid      = null;
-let db       = null;
-let saveTimer = null;
+// ─── STATE ────────────────────────────────────────────────
+// bills: [{id, name, amount, freq, date, cat, dd, fundExclude}]
+// paidKeys:  ["billId_YYYY-MM-DD"]  regular occurrences marked paid
+// ddOvrKeys: ["billId_YYYY-MM-DD"]  DD occurrences explicitly unchecked
+let bills     = [];
+let paidKeys  = [];
+let ddOvrKeys = [];
+let settings  = {balance:0, balanceDate:tod(), catchupFortnights:2, paydayDate:tod(), setAside:0};
+let uid = null, db = null, saveTimer = null;
 
-// ══════════════════════════════════════
-// FIREBASE INIT & AUTH
-// ══════════════════════════════════════
+// ─── RECURRENCE ───────────────────────────────────────────
+function addCycle(d, freq) {
+  switch(freq){case'weekly':return d.add(1,'week');case'fortnightly':return d.add(2,'week');case'monthly':return d.add(1,'month');case'quarterly':return d.add(3,'month');case'annual':return d.add(1,'year');default:return d.add(2,'week');}
+}
+function prevCycle(d, freq) {
+  switch(freq){case'weekly':return d.subtract(1,'week');case'fortnightly':return d.subtract(2,'week');case'monthly':return d.subtract(1,'month');case'quarterly':return d.subtract(3,'month');case'annual':return d.subtract(1,'year');default:return d.subtract(2,'week');}
+}
+function nextDueOnOrAfter(bill, fromDj) {
+  let d = dayjs(bill.date);
+  if (!d.isBefore(fromDj)) return d;
+  const approx = {weekly:7,fortnightly:14,monthly:30.44,quarterly:91.31,annual:365.25}[bill.freq]||14;
+  const skip = Math.max(0, Math.floor(fromDj.diff(d,'day')/approx) - 2);
+  for(let i=0;i<skip;i++) d = addCycle(d,bill.freq);
+  while(d.isBefore(fromDj)) d = addCycle(d,bill.freq);
+  return d;
+}
+function occurrencesInRange(bill, startDj, endDj) {
+  const dates=[]; let d=nextDueOnOrAfter(bill,startDj);
+  while(!d.isAfter(endDj)){dates.push(d.format('YYYY-MM-DD'));d=addCycle(d,bill.freq);}
+  return dates;
+}
+function currentLiab(bill, asOfDj) {
+  const nxt=nextDueOnOrAfter(bill,asOfDj), prv=prevCycle(nxt,bill.freq);
+  const total=nxt.diff(prv,'day'), elap=Math.max(0,Math.min(asOfDj.diff(prv,'day'),total));
+  return bill.amount*(elap/total);
+}
+
+// ─── PAID STATE ───────────────────────────────────────────
+function occKey(id,ds)      { return `${id}_${ds}`; }
+function isPaidOcc(id,ds,dd){ const k=occKey(id,ds); return dd?!ddOvrKeys.includes(k):paidKeys.includes(k); }
+function toggleOcc(id,ds,dd){
+  const k=occKey(id,ds);
+  if(dd){ ddOvrKeys=ddOvrKeys.includes(k)?ddOvrKeys.filter(x=>x!==k):[...ddOvrKeys,k]; }
+  else  { paidKeys =paidKeys.includes(k) ?paidKeys.filter(x=>x!==k) :[...paidKeys,k];  }
+}
+
+// ─── MISC ─────────────────────────────────────────────────
+function tod()     { return new Date().toISOString().split('T')[0]; }
+function toFn(a,f) { return a*(TO_FN[f]??1); }
+function toYr(a,f) { return a*(TO_YR[f]??1); }
+function esc(s)    { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── FIREBASE ─────────────────────────────────────────────
 const auth = firebase.auth();
 db = firebase.firestore();
 
-auth.onAuthStateChanged(async user => {
-  if (user) {
-    uid = user.uid;
-    const av = document.getElementById('userAvatar');
-    if (user.photoURL) { av.src = user.photoURL; av.style.display = 'block'; }
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-    document.getElementById('panel-bills').innerHTML = '<div class="loading"><i class="ti ti-loader" style="font-size:22px"></i> Loading your bills…</div>';
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    uid=user.uid;
+    const av=document.getElementById('userAvatar');
+    if(user.photoURL){av.src=user.photoURL;av.style.display='block';}
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+    document.getElementById('panel-bills').innerHTML='<div class="empty"><i class="ti ti-loader" style="font-size:28px"></i>Loading…</div>';
     await loadData();
   } else {
-    uid = null;
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('mainApp').style.display = 'none';
+    uid=null;
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('mainApp').style.display='none';
   }
 });
 
-function signIn() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(err => {
-    document.getElementById('loginError').textContent = 'Sign in failed — please try again.';
-  });
-}
-
+function signIn()    { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(()=>{document.getElementById('loginError').textContent='Sign in failed — please try again.';}); }
 function doSignOut() { auth.signOut(); }
 
-// ══════════════════════════════════════
-// FIRESTORE — LOAD
-// ══════════════════════════════════════
-async function loadData() {
-  if (!uid) return;
-
-  const [billsSnap, settingsSnap, paidSnap] = await Promise.all([
-    db.collection(`users/${uid}/bills`).orderBy('createdAt', 'asc').get(),
+async function loadData(){
+  const [bs,ss,ps]=await Promise.all([
+    db.collection(`users/${uid}/bills`).orderBy('createdAt','asc').get(),
     db.doc(`users/${uid}/meta/settings`).get(),
     db.doc(`users/${uid}/meta/paid`).get()
   ]);
-
-  bills = billsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-  if (settingsSnap.exists) settings = { ...settings, ...settingsSnap.data() };
-  if (paidSnap.exists) paidIds = paidSnap.data().ids || [];
-
+  bills=bs.docs.map(d=>({id:d.id,...d.data()}));
+  if(ss.exists) settings={...settings,...ss.data()};
+  if(ps.exists){paidKeys=ps.data().paidKeys||[];ddOvrKeys=ps.data().ddOvrKeys||[];}
   renderAll();
 }
 
-// ══════════════════════════════════════
-// FIRESTORE — SAVE
-// ══════════════════════════════════════
-async function addBillFS(data) {
-  const ref = await db.collection(`users/${uid}/bills`).add({
-    ...data,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-  return ref.id;
+async function addBillFS(data){
+  const r=await db.collection(`users/${uid}/bills`).add({...data,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  return r.id;
 }
+async function deleteBillFS(id){ await db.doc(`users/${uid}/bills/${id}`).delete(); }
 
-async function deleteBillFS(id) {
-  await db.doc(`users/${uid}/bills/${id}`).delete();
-}
-
-function saveSettingsDebounced() {
+function saveSettingsDebounced(){
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    await db.doc(`users/${uid}/meta/settings`).set(settings, { merge: true });
-    toast('Saved ✓');
-  }, 700);
+  saveTimer=setTimeout(async()=>{await db.doc(`users/${uid}/meta/settings`).set(settings,{merge:true});toast('Saved ✓');},700);
 }
+async function savePaid(){ await db.doc(`users/${uid}/meta/paid`).set({paidKeys,ddOvrKeys}); toast('Saved ✓'); }
+function toast(msg){ const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1600); }
 
-async function savePaid() {
-  await db.doc(`users/${uid}/meta/paid`).set({ ids: paidIds });
-  toast('Saved ✓');
+// ─── NAVIGATION ───────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.tabbar-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
 }
+function renderAll(){ renderBills(); renderPayday(); renderFund(); }
 
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 1600);
-}
+// ─── BILLS PANEL ──────────────────────────────────────────
+function renderBills(){
+  const fundBills=bills.filter(b=>!b.fundExclude);
+  const totalFn=fundBills.reduce((s,b)=>s+toFn(b.amount,b.freq),0);
+  const totalYr=fundBills.reduce((s,b)=>s+toYr(b.amount,b.freq),0);
+  const sorted=[...bills].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const todDj=dayjs(tod());
 
-// ══════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════
-function today()   { return new Date().toISOString().split('T')[0]; }
-function toFn(a,f) { return a * (TO_FN[f] ?? 1); }
-function toYr(a,f) { return a * (TO_YR[f] ?? 1); }
-function esc(s)    { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-function liability(bill, asOf) {
-  const cd    = CYCLE_DAYS[bill.freq];
-  const start = dayjs(bill.date).subtract(Math.round(cd), 'day');
-  const elap  = Math.max(0, Math.min(dayjs(asOf).diff(start, 'day'), cd));
-  return bill.amount * (elap / cd);
-}
-
-// ══════════════════════════════════════
-// NAVIGATION
-// ══════════════════════════════════════
-function switchTab(tab) {
-  document.querySelectorAll('.tabbar-item').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  document.getElementById('panel-' + tab).classList.add('active');
-}
-
-function renderAll() { renderBills(); renderPayday(); renderFund(); }
-
-// ══════════════════════════════════════
-// BILLS PANEL
-// ══════════════════════════════════════
-function renderBills() {
-  const totalFn = bills.reduce((s,b) => s + toFn(b.amount, b.freq), 0);
-  const totalYr = bills.reduce((s,b) => s + toYr(b.amount, b.freq), 0);
-
-  const sorted = [...bills].sort((a,b) => new Date(a.date) - new Date(b.date));
-
-  document.getElementById('panel-bills').innerHTML = `
+  document.getElementById('panel-bills').innerHTML=`
     <p class="section-label">Add a bill</p>
     <div class="card">
       <div class="field-row">
         <div class="field"><label>Bill name</label><input id="bName" type="text" placeholder="e.g. Rent, Netflix" autocomplete="off"></div>
-        <div class="field"><label>Amount ($)</label><input id="bAmount" type="number" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
+        <div class="field"><label>Amount ($)</label><input id="bAmt" type="number" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
       </div>
       <div class="field-row">
         <div class="field"><label>Frequency</label>
@@ -474,173 +347,198 @@ function renderBills() {
             <option value="annual">Annual</option>
           </select>
         </div>
-        <div class="field"><label>Next due date</label><input id="bDate" type="date" value="${today()}"></div>
+        <div class="field"><label>First due date</label><input id="bDate" type="date" value="${tod()}"></div>
       </div>
-      <div class="field">
-        <label>Category</label>
+      <div class="field"><label>Category</label>
         <select id="bCat">
-          <option value="home">🏠 Home</option>
-          <option value="utilities">⚡ Utilities</option>
-          <option value="subscriptions">📱 Subscriptions</option>
-          <option value="insurance">🛡️ Insurance</option>
-          <option value="transport">🚗 Transport</option>
-          <option value="health">❤️ Health</option>
-          <option value="other">📋 Other</option>
+          <option value="home">🏠 Home</option><option value="utilities">⚡ Utilities</option>
+          <option value="subscriptions">📱 Subscriptions</option><option value="insurance">🛡️ Insurance</option>
+          <option value="transport">🚗 Transport</option><option value="health">❤️ Health</option><option value="other">📋 Other</option>
         </select>
       </div>
-      <div class="dd-row">
-        <div class="dd-label"><strong>Direct debit</strong><span>Automatically deducted — no manual action needed</span></div>
+      <div class="toggle-row">
+        <div class="toggle-label"><strong>Direct debit</strong><span>Auto-deducted — pre-ticked, tap to uncheck if payment fails</span></div>
         <label class="toggle"><input type="checkbox" id="bDD"><span class="slider"></span></label>
       </div>
-      <p class="error-msg" id="bErr">Please fill in all fields.</p>
+      <div class="toggle-row" style="margin-bottom:0">
+        <div class="toggle-label"><strong>Exclude from fund</strong><span>Paid directly from pay — no need to set money aside</span></div>
+        <label class="toggle"><input type="checkbox" id="bExclude"><span class="slider"></span></label>
+      </div>
+      <p class="error-msg" id="bErr">Please fill in all required fields.</p>
       <button class="btn-primary" id="addBtn" onclick="addBill()"><i class="ti ti-plus" aria-hidden="true"></i> Add bill</button>
     </div>
 
-    ${bills.length > 0 ? `
-    <div class="grid3">
+    ${bills.length>0?`<div class="grid3">
       <div class="metric"><div class="m-label">Bills</div><div class="m-value">${bills.length}</div></div>
-      <div class="metric"><div class="m-label">Per fortnight</div><div class="m-value">$${totalFn.toFixed(2)}</div></div>
-      <div class="metric"><div class="m-label">Per year</div><div class="m-value">$${Math.round(totalYr).toLocaleString()}</div></div>
-    </div>` : ''}
+      <div class="metric"><div class="m-label">Fund / fortnight</div><div class="m-value">$${totalFn.toFixed(2)}</div></div>
+      <div class="metric"><div class="m-label">Fund / year</div><div class="m-value">$${Math.round(totalYr).toLocaleString()}</div></div>
+    </div>`:''}
 
     <p class="section-label">Your bills</p>
     <div class="bill-list">
-      ${sorted.length === 0
-        ? `<div class="empty"><i class="ti ti-receipt" aria-hidden="true"></i>No bills yet — add your first one above</div>`
-        : sorted.map(b => {
-            const fc  = FREQ_COLORS[b.freq] || FREQ_COLORS.monthly;
-            const fn  = toFn(b.amount, b.freq);
-            const due = dayjs(b.date).format('D MMM YYYY');
-            return `<div class="bill-item">
-              <div class="bill-icon" style="background:${CAT_BG[b.cat]||'#f3f4f6'}">${CAT_ICONS[b.cat]||'📋'}</div>
-              <div class="bill-info">
-                <div class="bill-name">${esc(b.name)}${b.dd?`<span class="badge badge-dd"><i class="ti ti-credit-card" style="font-size:10px" aria-hidden="true"></i> DD</span>`:''}</div>
-                <div class="bill-meta"><span class="badge" style="background:${fc.bg};color:${fc.color}">${FREQ_LABELS[b.freq]}</span>Due ${due}</div>
+      ${sorted.length===0
+        ?`<div class="empty"><i class="ti ti-receipt" aria-hidden="true"></i>No bills yet — add your first one above</div>`
+        :sorted.map(b=>{
+          const fc=FREQ_COLORS[b.freq]||FREQ_COLORS.monthly;
+          const fn=toFn(b.amount,b.freq);
+          const nxt=nextDueOnOrAfter(b,todDj).format('D MMM YYYY');
+          return `<div class="bill-item">
+            <div class="bill-cat" style="background:${CAT_BG[b.cat]||'#f3f4f6'}">${CAT_ICONS[b.cat]||'📋'}</div>
+            <div class="bill-info">
+              <div class="bill-name">${esc(b.name)}
+                ${b.dd?`<span class="badge badge-dd"><i class="ti ti-credit-card" style="font-size:10px" aria-hidden="true"></i> DD</span>`:''}
+                ${b.fundExclude?`<span class="badge badge-exc">From pay</span>`:''}
               </div>
-              <div class="bill-right">
-                <div class="bill-amt">$${b.amount.toFixed(2)}</div>
-                ${b.freq!=='fortnightly'?`<div class="bill-fn">$${fn.toFixed(2)}/fn</div>`:''}
-              </div>
-              <button class="btn-del" onclick="removeBill('${b.id}')" aria-label="Remove ${esc(b.name)}"><i class="ti ti-trash" aria-hidden="true"></i></button>
-            </div>`;
-          }).join('')
-      }
+              <div class="bill-meta"><span class="badge" style="background:${fc.bg};color:${fc.color}">${FREQ_LABELS[b.freq]}</span>Next: ${nxt}</div>
+            </div>
+            <div class="bill-right">
+              <div class="bill-amt">$${b.amount.toFixed(2)}</div>
+              ${!b.fundExclude&&b.freq!=='fortnightly'?`<div class="bill-fn">$${fn.toFixed(2)}/fn</div>`:''}
+            </div>
+            <button class="btn-del" onclick="removeBill('${b.id}')" aria-label="Remove ${esc(b.name)}"><i class="ti ti-trash" aria-hidden="true"></i></button>
+          </div>`;
+        }).join('')}
     </div>`;
 }
 
-async function addBill() {
-  const name   = document.getElementById('bName').value.trim();
-  const amount = parseFloat(document.getElementById('bAmount').value);
-  const freq   = document.getElementById('bFreq').value;
-  const date   = document.getElementById('bDate').value;
-  const cat    = document.getElementById('bCat').value;
-  const dd     = document.getElementById('bDD').checked;
-  const err    = document.getElementById('bErr');
-  const btn    = document.getElementById('addBtn');
-
-  if (!name || isNaN(amount) || amount <= 0 || !date) { err.style.display='block'; return; }
-  err.style.display = 'none';
-  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader" aria-hidden="true"></i> Saving…';
-
-  const newId = await addBillFS({ name, amount, freq, date, cat, dd });
-  bills.push({ id: newId, name, amount, freq, date, cat, dd });
-
-  renderAll();
-  toast('Bill added ✓');
+async function addBill(){
+  const name=document.getElementById('bName').value.trim();
+  const amount=parseFloat(document.getElementById('bAmt').value);
+  const freq=document.getElementById('bFreq').value;
+  const date=document.getElementById('bDate').value;
+  const cat=document.getElementById('bCat').value;
+  const dd=document.getElementById('bDD').checked;
+  const fundExclude=document.getElementById('bExclude').checked;
+  const err=document.getElementById('bErr'), btn=document.getElementById('addBtn');
+  if(!name||isNaN(amount)||amount<=0||!date){err.style.display='block';return;}
+  err.style.display='none';
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader" aria-hidden="true"></i> Saving…';
+  const newId=await addBillFS({name,amount,freq,date,cat,dd,fundExclude});
+  bills.push({id:newId,name,amount,freq,date,cat,dd,fundExclude});
+  renderAll(); toast('Bill added ✓');
 }
 
-async function removeBill(id) {
-  if (!confirm('Remove this bill?')) return;
+async function removeBill(id){
+  if(!confirm('Remove this bill?')) return;
   await deleteBillFS(id);
-  bills   = bills.filter(b => b.id !== id);
-  paidIds = paidIds.filter(p => p !== id);
-  await savePaid();
-  renderAll();
+  bills=bills.filter(b=>b.id!==id);
+  paidKeys=paidKeys.filter(k=>!k.startsWith(id+'_'));
+  ddOvrKeys=ddOvrKeys.filter(k=>!k.startsWith(id+'_'));
+  await savePaid(); renderAll();
 }
 
-// ══════════════════════════════════════
-// PAYDAY PANEL
-// ══════════════════════════════════════
-function renderPayday() {
-  const pv = settings.paydayDate || today();
-  const sa = settings.setAside   || 0;
-
-  let meta = '';
-  let billsHtml = '';
-
-  if (bills.length > 0) {
-    const start   = dayjs(pv);
-    const end     = start.add(13, 'day');
-    const fnBills = bills.filter(b => { const d = dayjs(b.date); return !d.isBefore(start) && !d.isAfter(end); });
-    const total   = fnBills.reduce((s,b) => s + b.amount, 0);
-    const paid    = fnBills.filter(b => paidIds.includes(b.id) || b.dd).reduce((s,b) => s + b.amount, 0);
-    const remain  = Math.max(total - paid, 0);
-    const over    = sa > 0 && total > sa;
-    const pct     = sa > 0 ? Math.min(total / sa * 100, 100) : 0;
-    const ddCount = fnBills.filter(b => b.dd).length;
-
-    meta = `
-      <div class="grid3">
-        <div class="metric"><div class="m-label">Bills due</div><div class="m-value">${fnBills.length}</div></div>
-        <div class="metric"><div class="m-label">Total due</div><div class="m-value ${over?'text-r':''}">$${total.toFixed(2)}</div></div>
-        <div class="metric"><div class="m-label">Still to pay</div><div class="m-value">$${remain.toFixed(2)}</div></div>
-      </div>
-      ${sa > 0 ? `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-size:12px;color:#888">Set aside: $${sa.toFixed(2)}</span>
-          <span style="font-size:12px;font-weight:700;color:${over?'#ef4444':'#639922'}">${over?'⚠ Over by $'+(total-sa).toFixed(2):'✓ $'+(sa-total).toFixed(2)+' to spare'}</span>
-        </div>
-        <div class="prog-wrap"><div class="prog-fill ${over?'over':''}" style="width:${pct.toFixed(1)}%"></div></div>` : ''}
-      ${ddCount>0?`<p style="font-size:12px;color:#888;margin-bottom:10px"><span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700"><i class="ti ti-credit-card" style="font-size:11px" aria-hidden="true"></i> ${ddCount} direct debit${ddCount>1?'s':''} auto-marked</span></p>`:''}`;
-
-    billsHtml = fnBills.length === 0
-      ? `<div class="empty"><i class="ti ti-confetti" aria-hidden="true"></i>No bills due this fortnight 🎉</div>`
-      : `<div class="fn-list">${[...fnBills].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(b=>{
-          const done = paidIds.includes(b.id) || b.dd;
-          return `<div class="fn-item ${done?'paid':''}">
-            <button class="chk ${done?'on':''} ${b.dd?'dd':''}" onclick="${b.dd?'':('togglePaid(\''+b.id+'\')')}" ${b.dd?'title="Direct debit — auto-deducted"':''} aria-label="${done?'Mark unpaid':'Mark paid'}: ${esc(b.name)}">
-              <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
-            </button>
-            <div style="flex:1;min-width:0">
-              <div class="fn-name">${esc(b.name)}${b.dd?`<span class="badge badge-dd" style="font-size:10px">DD</span>`:''}</div>
-              <div class="fn-due">Due ${dayjs(b.date).format('ddd D MMM')}</div>
-            </div>
-            <div class="fn-amt">$${b.amount.toFixed(2)}</div>
-          </div>`;
-        }).join('')}</div>`;
-  }
-
-  document.getElementById('panel-payday').innerHTML = `
+// ─── PAYDAY PANEL ─────────────────────────────────────────
+function renderPayday(){
+  const pv=settings.paydayDate||tod(), sa=settings.setAside||0;
+  const inputCard=`
     <p class="section-label">Payday details</p>
     <div class="card">
       <div class="field-row">
         <div class="field"><label>Payday date</label><input type="date" value="${pv}" onchange="setSetting('paydayDate',this.value)"></div>
         <div class="field"><label>Set aside ($)</label><input type="number" value="${sa||''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal" onchange="setSetting('setAside',parseFloat(this.value)||0)"></div>
       </div>
+    </div>`;
+
+  if(!bills.length){document.getElementById('panel-payday').innerHTML=inputCard+`<div class="empty"><i class="ti ti-list" aria-hidden="true"></i>Add some bills in the My bills tab first</div>`;return;}
+
+  const start=dayjs(pv), end=start.add(13,'day');
+
+  // All occurrences in this fortnight
+  const fnOccs=[];
+  bills.forEach(b=>occurrencesInRange(b,start,end).forEach(ds=>fnOccs.push({bill:b,ds})));
+
+  // Overdue: unpaid occurrences in 90 days before payday
+  const odStart=start.subtract(90,'day');
+  const odOccs=[];
+  bills.forEach(b=>occurrencesInRange(b,odStart,start.subtract(1,'day')).forEach(ds=>{
+    if(!isPaidOcc(b.id,ds,b.dd)) odOccs.push({bill:b,ds});
+  }));
+
+  const fundOccs=fnOccs.filter(o=>!o.bill.fundExclude);
+  const payOccs =fnOccs.filter(o=> o.bill.fundExclude);
+  const fundTotal=fundOccs.reduce((s,o)=>s+o.bill.amount,0);
+  const payTotal =payOccs.reduce((s,o)=>s+o.bill.amount,0);
+  const fundPaid =fundOccs.filter(o=>isPaidOcc(o.bill.id,o.ds,o.bill.dd)).reduce((s,o)=>s+o.bill.amount,0);
+  const remain   =Math.max(fundTotal-fundPaid,0);
+  const odTotal  =odOccs.reduce((s,o)=>s+o.bill.amount,0);
+  const over=sa>0&&fundTotal>sa, pct=sa>0?Math.min(fundTotal/sa*100,100):0;
+  const ddCount=fundOccs.filter(o=>o.bill.dd).length;
+
+  const summaryHtml=`
+    <div class="grid3">
+      <div class="metric"><div class="m-label">Fund bills</div><div class="m-value">${fundOccs.length}</div></div>
+      <div class="metric"><div class="m-label">Total due</div><div class="m-value ${over?'text-r':''}">$${fundTotal.toFixed(2)}</div></div>
+      <div class="metric"><div class="m-label">Still to pay</div><div class="m-value">$${remain.toFixed(2)}</div></div>
     </div>
-    ${meta}
-    ${bills.length===0
-      ? `<div class="empty"><i class="ti ti-list" aria-hidden="true"></i>Add some bills in the My bills tab first</div>`
-      : `<p class="section-label">Bills this fortnight</p>${billsHtml}`}`;
+    ${sa>0?`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;color:#888">Set aside: $${sa.toFixed(2)}</span>
+      <span style="font-size:12px;font-weight:700;color:${over?'#ef4444':'#639922'}">${over?'⚠ Over by $'+(fundTotal-sa).toFixed(2):'✓ $'+(sa-fundTotal).toFixed(2)+' to spare'}</span>
+    </div><div class="prog-wrap"><div class="prog-fill ${over?'over':''}" style="width:${pct.toFixed(1)}%"></div></div>`:''}
+    ${ddCount>0?`<div class="banner banner-blue"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} — pre-ticked, tap to uncheck if payment fails</div>`:''}`;
+
+  const odHtml=odOccs.length===0?'':
+    `<p class="section-label" style="color:#991b1b">⚠ Overdue bills</p>
+    <div class="banner banner-red"><i class="ti ti-alert-circle" aria-hidden="true"></i>$${odTotal.toFixed(2)} outstanding — included in fund shortfall</div>
+    <div class="fn-list">${odOccs.sort((a,b)=>a.ds.localeCompare(b.ds)).map(o=>{
+      const paid=isPaidOcc(o.bill.id,o.ds,o.bill.dd);
+      return `<div class="fn-item overdue ${paid?'paid':''}">
+        <button class="chk ${paid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}',${!!o.bill.dd})" aria-label="${paid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
+          <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
+        </button>
+        <div style="flex:1;min-width:0">
+          <div class="fn-name" style="${paid?'':'color:#991b1b'}">${esc(o.bill.name)}${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}</div>
+          <div class="fn-due" style="${paid?'':'color:#ef4444'}">Was due ${dayjs(o.ds).format('ddd D MMM')} · overdue</div>
+        </div>
+        <div class="fn-amt" style="${paid?'':'color:#991b1b'}">$${o.bill.amount.toFixed(2)}</div>
+      </div>`;
+    }).join('')}</div>`;
+
+  const occRow=o=>{
+    const paid=isPaidOcc(o.bill.id,o.ds,o.bill.dd);
+    return `<div class="fn-item ${paid?'paid':''}">
+      <button class="chk ${paid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}',${!!o.bill.dd})"
+        title="${o.bill.dd?(paid?'DD — tap to uncheck if payment failed':'DD — tap to confirm paid'):''}"
+        aria-label="${paid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
+        <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
+      </button>
+      <div style="flex:1;min-width:0">
+        <div class="fn-name">${esc(o.bill.name)}${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}</div>
+        <div class="fn-due">Due ${dayjs(o.ds).format('ddd D MMM')}${o.bill.dd?' · auto-deducted':''}</div>
+      </div>
+      <div class="fn-amt">$${o.bill.amount.toFixed(2)}</div>
+    </div>`;
+  };
+
+  const sortO=arr=>[...arr].sort((a,b)=>a.ds.localeCompare(b.ds));
+
+  const fundSection=`
+    <p class="section-label">From bills fund${fundOccs.length?` · ${fundOccs.length} bill${fundOccs.length>1?'s':''}`:''}</p>
+    ${fundOccs.length===0
+      ?`<div class="banner banner-grey" style="margin-bottom:12px"><i class="ti ti-confetti" aria-hidden="true"></i>No fund bills due this fortnight 🎉</div>`
+      :`<div class="fn-list">${sortO(fundOccs).map(occRow).join('')}</div>`}`;
+
+  const paySection=payOccs.length===0?'':
+    `<p class="section-label">Paid from pay · $${payTotal.toFixed(2)}</p>
+    <div class="banner banner-grey"><i class="ti ti-cash" aria-hidden="true"></i>These come directly out of pay — no fund contribution needed</div>
+    <div class="fn-list">${sortO(payOccs).map(occRow).join('')}</div>`;
+
+  document.getElementById('panel-payday').innerHTML=inputCard+summaryHtml+odHtml+fundSection+paySection;
 }
 
-function setSetting(k, v) { settings[k] = v; saveSettingsDebounced(); renderPayday(); }
+function setSetting(k,v){ settings[k]=v; saveSettingsDebounced(); renderPayday(); }
 
-async function togglePaid(id) {
-  paidIds = paidIds.includes(id) ? paidIds.filter(p=>p!==id) : [...paidIds, id];
-  await savePaid();
-  renderPayday();
+async function tapPaid(billId, ds, isDd){
+  toggleOcc(billId, ds, isDd===true||isDd==='true');
+  await savePaid(); renderPayday();
 }
 
-// ══════════════════════════════════════
-// FUND PANEL
-// ══════════════════════════════════════
-function renderFund() {
-  const balance  = settings.balance           || 0;
-  const asOf     = settings.balanceDate       || today();
-  const catchup  = settings.catchupFortnights || 2;
+// ─── FUND PANEL ───────────────────────────────────────────
+function renderFund(){
+  const balance=settings.balance||0, asOf=settings.balanceDate||tod();
+  const catchup=settings.catchupFortnights||2;
+  const asOfDj=dayjs(asOf), todDj=dayjs(tod());
 
-  const setupCard = `
+  const setupCard=`
     <p class="section-label">Account setup</p>
     <div class="card">
       <div class="field-row">
@@ -649,104 +547,94 @@ function renderFund() {
       </div>
     </div>`;
 
-  if (!bills.length) {
-    document.getElementById('panel-fund').innerHTML = setupCard +
-      `<div class="empty"><i class="ti ti-list" aria-hidden="true"></i>Add some bills in the My bills tab first</div>`;
+  const fundBills=bills.filter(b=>!b.fundExclude);
+  if(!fundBills.length){
+    document.getElementById('panel-fund').innerHTML=setupCard+`<div class="empty"><i class="ti ti-list" aria-hidden="true"></i>${bills.length?'All bills are set to paid from pay — nothing to fund':'Add bills in the My bills tab first'}</div>`;
     return;
   }
 
-  const steady   = bills.reduce((s,b) => s + toFn(b.amount, b.freq), 0);
-  const totalLib = bills.reduce((s,b) => s + liability(b, asOf), 0);
-  const shortfall = totalLib - balance;
-  const behind    = shortfall > 0.005;
-  const thisFn    = behind ? steady + (shortfall / catchup) : steady;
-  const surplus   = behind ? 0 : Math.abs(shortfall);
+  const steady  =fundBills.reduce((s,b)=>s+toFn(b.amount,b.freq),0);
+  const totalLib=fundBills.reduce((s,b)=>s+currentLiab(b,asOfDj),0);
 
-  const pillCls = !behind ? 'pill-g' : shortfall < steady ? 'pill-a' : 'pill-r';
-  const pillTxt = !behind ? '✓ On track' : shortfall < steady*2 ? '⚠ Catching up' : '↑ Behind';
+  // Overdue: unpaid occurrences in last 90 days
+  const odStart=asOfDj.subtract(90,'day');
+  let odAmt=0; const odList=[];
+  fundBills.forEach(b=>occurrencesInRange(b,odStart,asOfDj.subtract(1,'day')).forEach(ds=>{
+    if(!isPaidOcc(b.id,ds,b.dd)){odAmt+=b.amount;odList.push({bill:b,ds});}
+  }));
 
-  document.getElementById('panel-fund').innerHTML = `
+  const shortfall=(totalLib-balance)+odAmt;
+  const behind=shortfall>0.005;
+  const thisFn=behind?steady+(shortfall/catchup):steady;
+  const surplus=behind?0:Math.abs(shortfall);
+  const pillCls=!behind?'sp-g':shortfall<steady?'sp-a':'sp-r';
+  const pillTxt=!behind?'✓ On track':shortfall<steady*2?'⚠ Catching up':'↑ Behind';
+
+  document.getElementById('panel-fund').innerHTML=`
     ${setupCard}
     <div class="hero">
       <div class="hero-label">Contribute each fortnight</div>
       <div class="hero-amount">$${thisFn.toFixed(2)}</div>
-      <div class="hero-sub">${behind
-        ? `Includes $${(shortfall/catchup).toFixed(2)} catch-up spread over ${catchup} fortnight${catchup>1?'s':''}`
-        : 'Steady state — you\'re fully caught up'}</div>
+      <div class="hero-sub">${behind?`Includes $${(shortfall/catchup).toFixed(2)} catch-up over ${catchup} fortnight${catchup>1?'s':''}`:'Steady state — you\'re fully caught up'}</div>
     </div>
-
     <div class="grid2">
       <div class="metric"><div class="m-label">Steady state</div><div class="m-value">$${steady.toFixed(2)}<span style="font-size:13px;font-weight:400;color:#888">/fn</span></div><div class="m-sub">Once caught up</div></div>
-      <div class="metric"><div class="m-label">Account status</div><div class="m-value"><span class="status-pill ${pillCls}">${pillTxt}</span></div><div class="m-sub">${behind?'Shortfall: $'+shortfall.toFixed(2):'Surplus: $'+surplus.toFixed(2)}</div></div>
+      <div class="metric"><div class="m-label">Account status</div><div class="m-value"><span class="spill ${pillCls}">${pillTxt}</span></div><div class="m-sub">${behind?'Shortfall: $'+shortfall.toFixed(2):'Surplus: $'+surplus.toFixed(2)}</div></div>
     </div>
     <div class="grid2">
-      <div class="metric"><div class="m-label">Current liability</div><div class="m-value">$${totalLib.toFixed(2)}</div><div class="m-sub">What account should hold</div></div>
+      <div class="metric"><div class="m-label">Accrued liability</div><div class="m-value">$${totalLib.toFixed(2)}</div><div class="m-sub">Regular bill accrual</div></div>
       <div class="metric"><div class="m-label">Account balance</div><div class="m-value">$${balance.toFixed(2)}</div><div class="m-sub">As of ${dayjs(asOf).format('D MMM YYYY')}</div></div>
     </div>
-
-    ${behind ? `
-    <p class="section-label">Catch-up period</p>
-    <div class="cu-selector">
-      ${[1,2,3,4].map(n=>`<button class="cu-btn ${catchup===n?'on':''}" onclick="setFund('catchupFortnights',${n})">${n} fn${n>1?'s':''}</button>`).join('')}
-    </div>` : ''}
-
+    ${odAmt>0?`<div class="banner banner-red" style="margin-bottom:12px"><i class="ti ti-alert-circle" aria-hidden="true"></i><strong>$${odAmt.toFixed(2)}</strong> in ${odList.length} overdue unpaid bill${odList.length>1?'s':''} added to shortfall</div>`:''}
+    ${behind?`<p class="section-label">Catch-up period</p><div class="cu-sel">${[1,2,3,4].map(n=>`<button class="cu-btn ${catchup===n?'on':''}" onclick="setFund('catchupFortnights',${n})">${n} fn${n>1?'s':''}</button>`).join('')}</div>`:''}
     <p class="section-label">Contribution plan</p>
-    <div class="card" style="padding:8px 14px">${buildTimeline(steady, shortfall, behind, catchup)}</div>
-
+    <div class="card" style="padding:8px 14px">${buildTimeline(steady,shortfall,behind,catchup)}</div>
     <p class="section-label">Bill liability breakdown</p>
     <div class="card" style="padding:8px 14px">
-      ${bills.map(b => {
-        const lib = liability(b, asOf);
-        const pct = b.amount > 0 ? lib/b.amount*100 : 0;
-        const fc  = FREQ_COLORS[b.freq] || FREQ_COLORS.monthly;
+      ${fundBills.map(b=>{
+        const lib=currentLiab(b,asOfDj);
+        const nxtDj=nextDueOnOrAfter(b,todDj);
+        const pct=b.amount>0?lib/b.amount*100:0;
+        const nxtStr=nxtDj.format('D MMM YYYY');
+        const prevDue=prevCycle(nextDueOnOrAfter(b,asOfDj),b.freq);
+        const isOvr=asOfDj.isAfter(prevDue)&&!isPaidOcc(b.id,prevDue.format('YYYY-MM-DD'),b.dd)&&prevDue.isAfter(dayjs(b.date).subtract(1,'day'));
+        const fc=FREQ_COLORS[b.freq]||FREQ_COLORS.monthly;
         return `<div class="lib-row">
           <div class="lib-info">
-            <div class="lib-name">${esc(b.name)}${b.dd?`<span class="badge badge-dd" style="font-size:10px">DD</span>`:''}</div>
-            <div class="lib-freq"><span class="badge" style="background:${fc.bg};color:${fc.color};font-size:10px">${FREQ_LABELS[b.freq]}</span> · $${b.amount.toFixed(2)}</div>
+            <div class="lib-name">${esc(b.name)}
+              ${b.dd?`<span class="badge badge-dd" style="font-size:10px">DD</span>`:''}
+              ${isOvr?`<span class="badge" style="background:#fee2e2;color:#991b1b;font-size:10px">Overdue</span>`:''}
+            </div>
+            <div class="lib-sub">
+              <span class="badge" style="background:${fc.bg};color:${fc.color};font-size:10px">${FREQ_LABELS[b.freq]}</span>
+              · $${b.amount.toFixed(2)} · Next due: <strong>${nxtStr}</strong>
+            </div>
           </div>
-          <div class="lib-bar-w"><div class="lib-bar" style="width:${Math.min(pct,100).toFixed(1)}%"></div></div>
-          <div class="lib-right"><div class="lib-amt">$${lib.toFixed(2)}</div><div class="lib-pct">${Math.round(pct)}% accrued</div></div>
+          <div class="lib-bw"><div class="lib-b" style="width:${Math.min(pct,100).toFixed(1)}%;${isOvr?'background:#ef4444':''}"></div></div>
+          <div class="lib-r">
+            <div class="lib-amt" style="${isOvr?'color:#991b1b':''}">$${lib.toFixed(2)}</div>
+            <div class="lib-pct">${isOvr?'Overdue':Math.round(pct)+'% accrued'}</div>
+          </div>
         </div>`;
       }).join('')}
-    </div>`;
+    </div>
+    ${bills.filter(b=>b.fundExclude).length>0?`
+    <p class="section-label">Excluded from fund</p>
+    <div class="banner banner-grey" style="margin-bottom:0"><i class="ti ti-cash" aria-hidden="true"></i>${bills.filter(b=>b.fundExclude).map(b=>esc(b.name)).join(', ')} — paid directly from pay</div>`:''}`
+  ;
 }
 
-function buildTimeline(steady, shortfall, behind, catchup) {
-  if (!behind) return `<div class="tl-row">
-    <span class="tl-fn">Every fn</span>
-    <div class="tl-bar-w"><div class="tl-bar s" style="width:100%"></div></div>
-    <span class="tl-amt">$${steady.toFixed(2)}</span>
-    <span class="tl-tag tag-st">Steady</span>
-  </div>`;
-
-  const cu  = steady + shortfall / catchup;
-  const max = cu;
-  let rows  = [];
-  for (let i=1; i<=catchup; i++) {
-    rows.push(`<div class="tl-row">
-      <span class="tl-fn">Fn ${i}</span>
-      <div class="tl-bar-w"><div class="tl-bar" style="width:100%"></div></div>
-      <span class="tl-amt">$${cu.toFixed(2)}</span>
-      <span class="tl-tag tag-cu">Catch-up</span>
-    </div>`);
-  }
-  rows.push(`<div class="tl-row">
-    <span class="tl-fn">Fn ${catchup+1}+</span>
-    <div class="tl-bar-w"><div class="tl-bar s" style="width:${(steady/max*100).toFixed(1)}%"></div></div>
-    <span class="tl-amt">$${steady.toFixed(2)}</span>
-    <span class="tl-tag tag-st">Steady</span>
-  </div>`);
+function buildTimeline(steady,shortfall,behind,catchup){
+  if(!behind) return `<div class="tl-row"><span class="tl-fn">Every fn</span><div class="tl-bw"><div class="tl-b s" style="width:100%"></div></div><span class="tl-amt">$${steady.toFixed(2)}</span><span class="tl-tag tag-st">Steady</span></div>`;
+  const cu=steady+shortfall/catchup, rows=[];
+  for(let i=1;i<=catchup;i++) rows.push(`<div class="tl-row"><span class="tl-fn">Fn ${i}</span><div class="tl-bw"><div class="tl-b" style="width:100%"></div></div><span class="tl-amt">$${cu.toFixed(2)}</span><span class="tl-tag tag-cu">Catch-up</span></div>`);
+  rows.push(`<div class="tl-row"><span class="tl-fn">Fn ${catchup+1}+</span><div class="tl-bw"><div class="tl-b s" style="width:${(steady/cu*100).toFixed(1)}%"></div></div><span class="tl-amt">$${steady.toFixed(2)}</span><span class="tl-tag tag-st">Steady</span></div>`);
   return rows.join('');
 }
 
-function setFund(k, v) { settings[k] = v; saveSettingsDebounced(); renderFund(); }
+function setFund(k,v){ settings[k]=v; saveSettingsDebounced(); renderFund(); }
 
-// ══════════════════════════════════════
-// SERVICE WORKER
-// ══════════════════════════════════════
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(console.error));
-}
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(console.error)); }
 </script>
 </body>
 </html>
