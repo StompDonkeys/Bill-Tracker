@@ -528,7 +528,6 @@ async function removeBill(id){
   bills=bills.filter(b=>b.id!==id);
   paidKeys=paidKeys.filter(k=>!k.startsWith(id+'_'));
   ddOvrKeys=ddOvrKeys.filter(k=>!k.startsWith(id+'_'));
-  // Clean up paid amounts tracking object keys
   Object.keys(paidAmounts).forEach(k => { if(k.startsWith(id+'_')) delete paidAmounts[k]; });
   await savePaid(); renderAll();
 }
@@ -565,6 +564,12 @@ function renderPayday(){
   const fundPaid =fundOccs.reduce((s,o)=>s+getAmtPaid(o.bill,o.ds),0);
   const remain   =Math.max(fundTotal-fundPaid,0);
   
+  // Calculate total unpaid direct debit requirements specifically within this cycle
+  const pendingDDTotal = fundOccs.filter(o => o.bill.dd).reduce((s, o) => {
+    const amtPaid = getAmtPaid(o.bill, o.ds);
+    return s + Math.max(o.bill.amount - amtPaid, 0);
+  }, 0);
+
   const odTotal  =odOccs.reduce((s,o)=>{
     const amtPaid = getAmtPaid(o.bill, o.ds);
     return s + (o.bill.amount - amtPaid);
@@ -574,16 +579,17 @@ function renderPayday(){
   const ddCount=fundOccs.filter(o=>o.bill.dd).length;
 
   const summaryHtml=`
-    <div class="grid3">
-      <div class="metric"><div class="m-label">Fund bills</div><div class="m-value">${fundOccs.length}</div></div>
+    <div class="grid2">
       <div class="metric"><div class="m-label">Total due</div><div class="m-value ${over?'text-r':''}">$${fundTotal.toFixed(2)}</div></div>
       <div class="metric"><div class="m-label">Still to pay</div><div class="m-value">$${remain.toFixed(2)}</div></div>
+      <div class="metric"><div class="m-label">Fund bills</div><div class="m-value">${fundOccs.length}</div></div>
+      <div class="metric"><div class="m-label">Pending DDs</div><div class="m-value" style="${pendingDDTotal > 0 ? 'color: #1e40af; font-weight:700;' : ''}">$${pendingDDTotal.toFixed(2)}</div></div>
     </div>
-    ${sa>0?`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    ${sa>0?`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;margin-top:12px;">
       <span style="font-size:12px;color:#888">Set aside: $${sa.toFixed(2)}</span>
       <span style="font-size:12px;font-weight:700;color:${over?'#ef4444':'#639922'}">${over?'⚠ Over by $'+(fundTotal-sa).toFixed(2):'✓ $'+(sa-fundTotal).toFixed(2)+' to spare'}</span>
     </div><div class="prog-wrap"><div class="prog-fill ${over?'over':''}" style="width:${pct.toFixed(1)}%"></div></div>`:''}
-    ${ddCount>0?`<div class="banner banner-blue"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} — pre-ticked, tap to uncheck if payment fails</div>`:''}`;
+    ${ddCount>0?`<div class="banner banner-blue" style="margin-top:10px;"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} — pre-ticked, tap to uncheck if payment fails</div>`:''}`;
 
   const odHtml=odOccs.length===0?'':
     `<p class="section-label" style="color:#991b1b">⚠ Overdue bills</p>
