@@ -49,7 +49,7 @@
     .field        { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
     .field:last-child { margin-bottom: 0; }
     .field label  { font-size: 12px; font-weight: 700; color: #555; }
-    .field input, .field select { height: 44px; border: 1px solid #e0e0d8; border-radius: 10px; padding: 0 12px; font-size: 15px; background: #fafaf8; color: #1a1a18; font-family: inherit; outline: none; -webkit-appearance: none; appearance: none; }
+    .field input, .field select { width: 100%; min-width: 0; height: 44px; border: 1px solid #e0e0d8; border-radius: 10px; padding: 0 12px; font-size: 15px; background: #fafaf8; color: #1a1a18; font-family: inherit; outline: none; -webkit-appearance: none; appearance: none; }
     .field input:focus, .field select:focus { border-color: #639922; background: #fff; }
     .field-row    { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
@@ -221,6 +221,7 @@ let bills     = [];
 let paidKeys  = [];
 let ddOvrKeys = [];
 let paidAmounts = {};
+let historyAmounts = {};
 let settings  = {balance:0, balanceDate:tod(), catchupFortnights:2, paydayDate:tod(), setAside:0};
 let uid = null, db = null, saveTimer = null, editingId = null;
 
@@ -251,15 +252,16 @@ function occurrencesInRange(bill, startDj, endDj) {
   return dates;
 }
 function currentLiab(bill, asOfDj) {
+  const expAmt = getExpectedAmount(bill, asOfDj.format('YYYY-MM-DD'));
   if (bill.freq === 'oneoff') {
     const amtPaid = getAmtPaid(bill, bill.date);
-    if (amtPaid >= bill.amount) return 0;
+    if (amtPaid >= expAmt) return 0;
     if (asOfDj.isAfter(dayjs(bill.date))) return 0;
-    return bill.amount - amtPaid;
+    return expAmt - amtPaid;
   }
   const nxt=nextDueOnOrAfter(bill,asOfDj), prv=prevCycle(nxt,bill.freq);
   const total=nxt.diff(prv,'day'), elap=Math.max(0,Math.min(asOfDj.diff(prv,'day'),total));
-  return bill.amount*(elap/total);
+  return expAmt*(elap/total);
 }
 
 // ─── PAID STATE ───────────────────────────────────────────
@@ -267,15 +269,20 @@ function occKey(id,ds)      { return `${id}_${ds}`; }
 function isPaidOcc(id, ds) {
   const bill = bills.find(b => b.id === id);
   if (!bill) return false;
-  return getAmtPaid(bill, ds) >= bill.amount;
+  return getAmtPaid(bill, ds) >= getExpectedAmount(bill, ds);
+}
+function getExpectedAmount(bill, ds) {
+  const k = occKey(bill.id, ds);
+  return historyAmounts[k] !== undefined ? historyAmounts[k] : bill.amount;
 }
 function getAmtPaid(bill, ds) {
   const k = occKey(bill.id, ds);
   if (paidAmounts[k] !== undefined) return paidAmounts[k];
+  const expAmt = getExpectedAmount(bill, ds);
   if (bill.dd) {
-    return ddOvrKeys.includes(k) ? 0 : bill.amount;
+    return ddOvrKeys.includes(k) ? 0 : expAmt;
   } else {
-    return paidKeys.includes(k) ? bill.amount : 0;
+    return paidKeys.includes(k) ? expAmt : 0;
   }
 }
 
@@ -320,6 +327,7 @@ async function loadData(){
     paidKeys=ps.data().paidKeys||[];
     ddOvrKeys=ps.data().ddOvrKeys||[];
     paidAmounts=ps.data().paidAmounts||{};
+    historyAmounts=ps.data().historyAmounts||{};
   }
   renderAll();
 }
@@ -334,7 +342,7 @@ function saveSettingsDebounced(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{await db.doc(`users/${uid}/meta/settings`).set(settings,{merge:true});toast('Saved ✓');},700);
 }
-async function savePaid(){ await db.doc(`users/${uid}/meta/paid`).set({paidKeys,ddOvrKeys,paidAmounts}); toast('Saved ✓'); }
+async function savePaid(){ await db.doc(`users/${uid}/meta/paid`).set({paidKeys,ddOvrKeys,paidAmounts,historyAmounts}); toast('Saved ✓'); }
 function toast(msg){ const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1600); }
 
 // ─── NAVIGATION ───────────────────────────────────────────
@@ -494,6 +502,24 @@ async function addBill(){
 
   if (editingId) {
     btn.innerHTML='<i class="ti ti-loader" aria-hidden="true"></i> Saving updates…';
+    const oldBill = bills.find(b => b.id === editingId);
+    
+    if (oldBill && oldBill.amount !== amount) {
+      const startDj = dayjs(oldBill.date);
+      const endDj = dayjs(tod()).subtract(1, 'day');
+      if (endDj.isAfter(startDj) || endDj.isSame(startDj)) {
+        occurrencesInRange(oldBill, startDj, endDj).forEach(ds => {
+          const key = occKey(editingId, ds);
+          if (historyAmounts[key] === undefined) {
+            historyAmounts[key] = oldBill.amount;
+            if (oldBill.dd && !ddOvrKeys.includes(key)) {
+              paidAmounts[key] = oldBill.amount;
+            }
+          }
+        });
+      }
+    }
+    
     await db.doc(`users/${uid}/bills/${editingId}`).update({name,amount,freq,date,cat,dd,fundExclude});
     const idx = bills.findIndex(b => b.id === editingId);
     if (idx !== -1) bills[idx] = { id: editingId, name, amount, freq, date, cat, dd, fundExclude };
@@ -519,6 +545,7 @@ async function addBill(){
   btn.innerHTML='<i class="ti ti-plus" aria-hidden="true"></i> Add bill';
   btn.disabled = false;
   
+  await savePaid();
   renderAll();
 }
 
@@ -529,6 +556,7 @@ async function removeBill(id){
   paidKeys=paidKeys.filter(k=>!k.startsWith(id+'_'));
   ddOvrKeys=ddOvrKeys.filter(k=>!k.startsWith(id+'_'));
   Object.keys(paidAmounts).forEach(k => { if(k.startsWith(id+'_')) delete paidAmounts[k]; });
+  Object.keys(historyAmounts).forEach(k => { if(k.startsWith(id+'_')) delete historyAmounts[k]; });
   await savePaid(); renderAll();
 }
 
@@ -559,20 +587,19 @@ function renderPayday(){
 
   const fundOccs=fnOccs.filter(o=>!o.bill.fundExclude);
   const payOccs =fnOccs.filter(o=> o.bill.fundExclude);
-  const fundTotal=fundOccs.reduce((s,o)=>s+o.bill.amount,0);
-  const payTotal =payOccs.reduce((s,o)=>s+o.bill.amount,0);
+  const fundTotal=fundOccs.reduce((s,o)=>s+getExpectedAmount(o.bill, o.ds),0);
+  const payTotal =payOccs.reduce((s,o)=>s+getExpectedAmount(o.bill, o.ds),0);
   const fundPaid =fundOccs.reduce((s,o)=>s+getAmtPaid(o.bill,o.ds),0);
   const remain   =Math.max(fundTotal-fundPaid,0);
   
-  // Calculate total unpaid direct debit requirements specifically within this cycle
   const pendingDDTotal = fundOccs.filter(o => o.bill.dd).reduce((s, o) => {
     const amtPaid = getAmtPaid(o.bill, o.ds);
-    return s + Math.max(o.bill.amount - amtPaid, 0);
+    return s + Math.max(getExpectedAmount(o.bill, o.ds) - amtPaid, 0);
   }, 0);
 
   const odTotal  =odOccs.reduce((s,o)=>{
     const amtPaid = getAmtPaid(o.bill, o.ds);
-    return s + (o.bill.amount - amtPaid);
+    return s + (getExpectedAmount(o.bill, o.ds) - amtPaid);
   },0);
   
   const over=sa>0&&fundTotal>sa, pct=sa>0?Math.min(fundTotal/sa*100,100):0;
@@ -595,9 +622,10 @@ function renderPayday(){
     `<p class="section-label" style="color:#991b1b">⚠ Overdue bills</p>
     <div class="banner banner-red"><i class="ti ti-alert-circle" aria-hidden="true"></i>$${odTotal.toFixed(2)} outstanding — included in fund shortfall</div>
     <div class="fn-list">${odOccs.sort((a,b)=>a.ds.localeCompare(b.ds)).map(o=>{
+      const expAmt = getExpectedAmount(o.bill, o.ds);
       const amtPaid = getAmtPaid(o.bill, o.ds);
-      const fullyPaid = amtPaid >= o.bill.amount;
-      const partiallyPaid = amtPaid > 0 && amtPaid < o.bill.amount;
+      const fullyPaid = amtPaid >= expAmt;
+      const partiallyPaid = amtPaid > 0 && amtPaid < expAmt;
       return `<div class="fn-item overdue ${fullyPaid?'paid':''}" style="${partiallyPaid ? 'border-left: 4px solid #ef4444;' : ''}">
         <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')" aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
           <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
@@ -606,17 +634,18 @@ function renderPayday(){
           <div class="fn-name" style="${fullyPaid?'':'color:#991b1b'}">${esc(o.bill.name)}${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}</div>
           <div class="fn-due" style="${fullyPaid?'':'color:#ef4444'}">
             Was due ${dayjs(o.ds).format('ddd D MMM')}
-            ${partiallyPaid ? `· <span style="font-weight:600">Paid $${amtPaid.toFixed(2)} of $${o.bill.amount.toFixed(2)}</span>` : ' · overdue'}
+            ${partiallyPaid ? `· <span style="font-weight:600">Paid $${amtPaid.toFixed(2)} of $${expAmt.toFixed(2)}</span>` : ' · overdue'}
           </div>
         </div>
-        <div class="fn-amt" style="${fullyPaid?'':'color:#991b1b'}">$${(o.bill.amount - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
+        <div class="fn-amt" style="${fullyPaid?'':'color:#991b1b'}">$${(expAmt - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
       </div>`;
     }).join('')}</div>`;
 
   const occRow=o=>{
+    const expAmt = getExpectedAmount(o.bill, o.ds);
     const amtPaid = getAmtPaid(o.bill, o.ds);
-    const fullyPaid = amtPaid >= o.bill.amount;
-    const partiallyPaid = amtPaid > 0 && amtPaid < o.bill.amount;
+    const fullyPaid = amtPaid >= expAmt;
+    const partiallyPaid = amtPaid > 0 && amtPaid < expAmt;
     return `<div class="fn-item ${fullyPaid?'paid':''}" style="${partiallyPaid ? 'border-left: 4px solid #639922;' : ''}">
       <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')"
         aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
@@ -626,10 +655,10 @@ function renderPayday(){
         <div class="fn-name">${esc(o.bill.name)}${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}</div>
         <div class="fn-due">
           Due ${dayjs(o.ds).format('ddd D MMM')}
-          ${partiallyPaid ? `· <span style="color:#639922;font-weight:600;">Paid $${amtPaid.toFixed(2)} of $${o.bill.amount.toFixed(2)}</span>` : (o.bill.dd ? ' · auto-deducted' : '')}
+          ${partiallyPaid ? `· <span style="color:#639922;font-weight:600;">Paid $${amtPaid.toFixed(2)} of $${expAmt.toFixed(2)}</span>` : (o.bill.dd ? ' · auto-deducted' : '')}
         </div>
       </div>
-      <div class="fn-amt">$${(o.bill.amount - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
+      <div class="fn-amt">$${(expAmt - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
     </div>`;
   };
 
@@ -655,6 +684,7 @@ async function tapPaid(billId, ds){
   const bill = bills.find(b => b.id === billId);
   if (!bill) return;
   const k = occKey(billId, ds);
+  const expAmt = getExpectedAmount(bill, ds);
   const currentPaid = getAmtPaid(bill, ds);
   
   if (currentPaid > 0) {
@@ -662,6 +692,7 @@ async function tapPaid(billId, ds){
       settings.balance += currentPaid;
       settings.balanceDate = tod();
       paidAmounts[k] = 0;
+      delete historyAmounts[k];
       paidKeys = paidKeys.filter(x => x !== k);
       if (bill.dd && !ddOvrKeys.includes(k)) ddOvrKeys.push(k);
       
@@ -674,17 +705,18 @@ async function tapPaid(billId, ds){
     return;
   }
   
-  const rem = bill.amount - currentPaid;
+  const rem = expAmt - currentPaid;
   const input = prompt(`Enter amount paid for ${bill.name}:`, rem.toFixed(2));
   if (input === null) return;
   const amt = parseFloat(input);
   if (isNaN(amt) || amt <= 0) { alert('Please enter a valid amount.'); return; }
   
+  historyAmounts[k] = expAmt;
   settings.balance -= amt;
   settings.balanceDate = tod();
   paidAmounts[k] = currentPaid + amt;
   
-  if (paidAmounts[k] >= bill.amount) {
+  if (paidAmounts[k] >= expAmt) {
     if (!paidKeys.includes(k)) paidKeys.push(k);
     if (bill.dd) ddOvrKeys = ddOvrKeys.filter(x => x !== k);
   }
@@ -724,8 +756,9 @@ function renderFund(){
   let odAmt=0; const odList=[];
   fundBills.forEach(b=>occurrencesInRange(b,odStart,asOfDj.subtract(1,'day')).forEach(ds=>{
     const amtPaid = getAmtPaid(b, ds);
-    if(amtPaid < b.amount){
-      const remaining = b.amount - amtPaid;
+    const expAmt = getExpectedAmount(b, ds);
+    if(amtPaid < expAmt){
+      const remaining = expAmt - amtPaid;
       odAmt += remaining;
       odList.push({bill:b,ds});
     }
@@ -765,7 +798,7 @@ function renderFund(){
         const pct=b.amount>0?lib/b.amount*100:0;
         const nxtStr=nxtDj.format('D MMM YYYY');
         const prevDue=prevCycle(nextDueOnOrAfter(b,asOfDj),b.freq);
-        const isOvr=b.freq!=='oneoff'&&asOfDj.isAfter(prevDue)&&getAmtPaid(b, prevDue.format('YYYY-MM-DD')) < b.amount&&prevDue.isAfter(dayjs(b.date).subtract(1,'day'));
+        const isOvr=b.freq!=='oneoff'&&asOfDj.isAfter(prevDue)&&getAmtPaid(b, prevDue.format('YYYY-MM-DD')) < getExpectedAmount(b, prevDue.format('YYYY-MM-DD'))&&prevDue.isAfter(dayjs(b.date).subtract(1,'day'));
         const fc=FREQ_COLORS[b.freq]||FREQ_COLORS.monthly;
         return `<div class="lib-row">
           <div class="lib-info">
