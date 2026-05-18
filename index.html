@@ -185,17 +185,17 @@
   </header>
   <nav class="tabbar" aria-label="Main navigation">
     <button class="tabbar-item active" id="tab-overview"   onclick="switchTab('overview')"><i class="ti ti-dashboard" aria-hidden="true"></i>Overview</button>
-    <button class="tabbar-item"        id="tab-projection" onclick="switchTab('projection')"><i class="ti ti-timeline" aria-hidden="true"></i>Lookahead</button>
-    <button class="tabbar-item"        id="tab-bills"      onclick="switchTab('bills')"><i class="ti ti-list" aria-hidden="true"></i>My bills</button>
     <button class="tabbar-item"        id="tab-payday"     onclick="switchTab('payday')"><i class="ti ti-calendar-dollar" aria-hidden="true"></i>Payday</button>
     <button class="tabbar-item"        id="tab-fund"       onclick="switchTab('fund')"><i class="ti ti-piggy-bank" aria-hidden="true"></i>Bills fund</button>
+    <button class="tabbar-item"        id="tab-projection" onclick="switchTab('projection')"><i class="ti ti-timeline" aria-hidden="true"></i>Lookahead</button>
+    <button class="tabbar-item"        id="tab-bills"      onclick="switchTab('bills')"><i class="ti ti-list" aria-hidden="true"></i>My bills</button>
   </nav>
   <main class="scroll-content">
     <div class="panel active" id="panel-overview"></div>
-    <div class="panel"        id="panel-projection"></div>
-    <div class="panel"        id="panel-bills"></div>
     <div class="panel"        id="panel-payday"></div>
     <div class="panel"        id="panel-fund"></div>
+    <div class="panel"        id="panel-projection"></div>
+    <div class="panel"        id="panel-bills"></div>
   </main>
 </div>
 
@@ -282,12 +282,7 @@ function getExpectedAmount(bill, ds) {
 function getAmtPaid(bill, ds) {
   const k = occKey(bill.id, ds);
   if (paidAmounts[k] !== undefined) return paidAmounts[k];
-  const expAmt = getExpectedAmount(bill, ds);
-  if (bill.dd) {
-    return ddOvrKeys.includes(k) ? 0 : expAmt;
-  } else {
-    return paidKeys.includes(k) ? expAmt : 0;
-  }
+  return paidKeys.includes(k) ? getExpectedAmount(bill, ds) : 0;
 }
 
 // ─── MISC ─────────────────────────────────────────────────
@@ -391,8 +386,9 @@ function calculateSafePace() {
   let runningBillsSum = 0;
   const simStart = dayjs(settings.paydayDate || tod());
   const freq = settings.paydayFreq || 'fortnightly';
+  const cyclesCount = freq === 'weekly' ? 156 : (freq === 'monthly' ? 36 : 78);
   
-  for (let k = 1; k <= 52; k++) {
+  for (let k = 1; k <= cyclesCount; k++) {
     const dates = getPayCycleDates(simStart, freq, k - 1);
     let cycleBillsAmt = 0;
     
@@ -435,6 +431,66 @@ function renderOverview() {
   
   const disposable = pay - safePace - directFromPayAmt;
   const isNegative = disposable < 0;
+
+  // Calculate Large Upcoming Bills (> 500) within 6 weeks
+  const todayDj = dayjs(tod());
+  const sixWeeksLaterDj = todayDj.add(6, 'week');
+  const largeBills = [];
+
+  bills.forEach(b => {
+    occurrencesInRange(b, todayDj, sixWeeksLaterDj).forEach(ds => {
+      const expAmt = getExpectedAmount(b, ds);
+      if (expAmt > 500) {
+        const fullyPaid = getAmtPaid(b, ds) >= expAmt;
+        if (!fullyPaid) {
+          largeBills.push({
+            bill: b,
+            dateStr: ds,
+            amount: expAmt
+          });
+        }
+      }
+    });
+  });
+
+  largeBills.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+
+  let largeBillsHtml = `
+    <p class="section-label">Large Upcoming Bills (&gt; $500)</p>
+    <div class="card" style="padding: 14px; margin-bottom: 0;">
+  `;
+
+  if (largeBills.length === 0) {
+    largeBillsHtml += `
+      <div style="color: #666; font-size: 14px; text-align: center; padding: 10px 0;">
+        <i class="ti ti-circle-check" style="color: #639922; font-size: 18px; vertical-align: middle; margin-right: 4px;"></i>
+        No large bills (&gt; $500) due within the next 6 weeks.
+      </div>
+    `;
+  } else {
+    largeBillsHtml += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
+    largeBills.forEach(item => {
+      const daysLeft = dayjs(item.dateStr).diff(todayDj, 'day');
+      let timingStr = '';
+      if (daysLeft === 0) timingStr = 'due today';
+      else if (daysLeft === 1) timingStr = 'due tomorrow';
+      else timingStr = `in ${daysLeft} days`;
+
+      largeBillsHtml += `
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0e8; padding-bottom: 8px;">
+          <div>
+            <span style="font-weight: 600; font-size: 14px; color: #1a1a18;">${esc(item.bill.name)}</span>
+            <div style="font-size: 12px; color: #888; margin-top: 2px;">Due ${dayjs(item.dateStr).format('ddd D MMM YYYY')} (${timingStr})</div>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-weight: 700; font-size: 15px; color: #991b1b;">$${item.amount.toFixed(2)}</span>
+          </div>
+        </div>
+      `;
+    });
+    largeBillsHtml += `</div>`;
+  }
+  largeBillsHtml += `</div>`;
 
   document.getElementById('panel-overview').innerHTML = `
     <p class="section-label">Payday Dashboard</p>
@@ -498,6 +554,8 @@ function renderOverview() {
         <div class="m-sub">Move to Bills account today</div>
       </div>
     </div>
+
+    ${largeBillsHtml}
   `;
 }
 
@@ -521,10 +579,12 @@ function renderProjection() {
     });
   });
 
+  const cyclesCount = freq === 'weekly' ? 156 : (freq === 'monthly' ? 36 : 78);
+
   let html = `
-    <p class="section-label">Optimization Lookahead</p>
+    <p class="section-label">Optimization Lookahead (3 Years)</p>
     <div class="banner banner-blue" style="margin-bottom: 12px;">
-      <i class="ti ti-info-circle"></i> Running a 26-period timeline model. The $${safePace.toFixed(2)} pacing rate ensures fund balance safety.
+      <i class="ti ti-info-circle"></i> Running a full 3-year timeline model (${cyclesCount} periods) to verify optimal funding trajectories.
     </div>
     <div class="card" style="padding: 12px; overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 480px;">
@@ -540,7 +600,7 @@ function renderProjection() {
         <tbody>
   `;
 
-  for (let k = 1; k <= 26; k++) {
+  for (let k = 1; k <= cyclesCount; k++) {
     const dates = getPayCycleDates(simStart, freq, k - 1);
     let cycleBillsTotal = 0;
     
@@ -735,9 +795,6 @@ async function addBill(){
           const key = occKey(editingId, ds);
           if (historyAmounts[key] === undefined) {
             historyAmounts[key] = oldBill.amount;
-            if (oldBill.dd && !ddOvrKeys.includes(key)) {
-              paidAmounts[key] = oldBill.amount;
-            }
           }
         });
       }
@@ -785,14 +842,7 @@ async function removeBill(id){
 
 // ─── PAYDAY PANEL ─────────────────────────────────────────
 function renderPayday(){
-  const sa=settings.setAside||0;
-  const inputCard=`
-    <p class="section-label">Payday Allocation</p>
-    <div class="card">
-      <div class="field"><label>Set aside ($)</label><input type="number" value="${sa||''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal" onchange="settings.setAside=parseFloat(this.value)||0; saveSettingsDebounced(); renderAll();"></div>
-    </div>`;
-
-  if(!bills.length){document.getElementById('panel-payday').innerHTML=inputCard+`<div class="empty"><i class="ti ti-list" aria-hidden="true"></i>Add some bills in the My bills tab first</div>`;return;}
+  if(!bills.length){document.getElementById('panel-payday').innerHTML=`<div class="empty"><i class="ti ti-list" aria-hidden="true"></i>Add some bills in the My bills tab first</div>`;return;}
 
   const start=dayjs(settings.paydayDate || tod());
   const freq = settings.paydayFreq || 'fortnightly';
@@ -824,21 +874,16 @@ function renderPayday(){
     return s + (getExpectedAmount(o.bill, o.ds) - amtPaid);
   },0);
   
-  const over=sa>0&&fundTotal>sa, pct=sa>0?Math.min(fundTotal/sa*100,100):0;
   const ddCount=fundOccs.filter(o=>o.bill.dd).length;
 
   const summaryHtml=`
     <div class="grid2">
-      <div class="metric"><div class="m-label">Total due</div><div class="m-value ${over?'text-r':''}">$${fundTotal.toFixed(2)}</div></div>
+      <div class="metric"><div class="m-label">Total due</div><div class="m-value">$${fundTotal.toFixed(2)}</div></div>
       <div class="metric"><div class="m-label">Still to pay</div><div class="m-value">$${remain.toFixed(2)}</div></div>
       <div class="metric"><div class="m-label">Fund bills</div><div class="m-value">${fundOccs.length}</div></div>
       <div class="metric"><div class="m-label">Pending DDs</div><div class="m-value" style="${pendingDDTotal > 0 ? 'color: #1e40af; font-weight:700;' : ''}">$${pendingDDTotal.toFixed(2)}</div></div>
     </div>
-    ${sa>0?`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;margin-top:12px;">
-      <span style="font-size:12px;color:#888">Set aside: $${sa.toFixed(2)}</span>
-      <span style="font-size:12px;font-weight:700;color:${over?'#ef4444':'#639922'}">${over?'⚠ Over by $'+(fundTotal-sa).toFixed(2):'✓ $'+(sa-fundTotal).toFixed(2)+' to spare'}</span>
-    </div><div class="prog-wrap"><div class="prog-fill ${over?'over':''}" style="width:${pct.toFixed(1)}%"></div></div>`:''}
-    ${ddCount>0?`<div class="banner banner-blue" style="margin-top:10px;"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} — pre-ticked, tap to uncheck if payment fails</div>`:''}`;
+    ${ddCount>0?`<div class="banner banner-blue" style="margin-top:10px;"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} running this cycle — tap to check off once paid</div>`:''}`;
 
   const odHtml=odOccs.length===0?'':
     `<p class="section-label" style="color:#991b1b">⚠ Overdue bills</p>
@@ -877,7 +922,7 @@ function renderPayday(){
         <div class="fn-name">${esc(o.bill.name)}${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}</div>
         <div class="fn-due">
           Due ${dayjs(o.ds).format('ddd D MMM')}
-          ${partiallyPaid ? `· <span style="color:#639922;font-weight:600;">Paid $${amtPaid.toFixed(2)} of $${expAmt.toFixed(2)}</span>` : (o.bill.dd ? ' · auto-deducted' : '')}
+          ${partiallyPaid ? `· <span style="color:#639922;font-weight:600;">Paid $${amtPaid.toFixed(2)} of $${expAmt.toFixed(2)}</span>` : (o.bill.dd ? ' · direct debit scheduled' : '')}
         </div>
       </div>
       <div class="fn-amt">$${(expAmt - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
@@ -897,7 +942,7 @@ function renderPayday(){
     <div class="banner banner-grey"><i class="ti ti-cash" aria-hidden="true"></i>These come directly out of pay — no fund contribution needed</div>
     <div class="fn-list">${sortO(payOccs).map(occRow).join('')}</div>`;
 
-  document.getElementById('panel-payday').innerHTML=inputCard+summaryHtml+odHtml+fundSection+paySection;
+  document.getElementById('panel-payday').innerHTML=summaryHtml+odHtml+fundSection+paySection;
 }
 
 async function tapPaid(billId, ds){
@@ -914,7 +959,6 @@ async function tapPaid(billId, ds){
       paidAmounts[k] = 0;
       delete historyAmounts[k];
       paidKeys = paidKeys.filter(x => x !== k);
-      if (bill.dd && !ddOvrKeys.includes(k)) ddOvrKeys.push(k);
       
       await Promise.all([
         savePaid(),
@@ -938,7 +982,6 @@ async function tapPaid(billId, ds){
   
   if (paidAmounts[k] >= expAmt) {
     if (!paidKeys.includes(k)) paidKeys.push(k);
-    if (bill.dd) ddOvrKeys = ddOvrKeys.filter(x => x !== k);
   }
   
   await Promise.all([
