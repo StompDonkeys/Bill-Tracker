@@ -104,7 +104,7 @@
     .prog-fill.over { background: #ef4444; }
 
     .fn-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-    .fn-item { background: #fff; border: 1px solid #e8e8e0; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; transition: opacity 0.2s; }
+    .fn-item { background: #fff; border: 1px solid #e8e8e0; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; transition: opacity 0.2s; flex-wrap: wrap; }
     .fn-item.paid { opacity: 0.45; }
     .fn-item.paid .fn-name { text-decoration: line-through; }
     .fn-item.overdue { border-color: #fecaca; }
@@ -113,6 +113,16 @@
     .fn-amt  { font-size: 14px; font-weight: 700; flex-shrink: 0; }
     .chk     { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ddd; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; color: transparent; }
     .chk.on  { background: #639922; border-color: #639922; color: #fff; }
+    .btn-partial { background: none; border: none; cursor: pointer; color: #ccc; padding: 4px 5px; border-radius: 6px; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s, background 0.15s; }
+    .btn-partial:hover { color: #639922; background: #f0fdf4; }
+    .fn-partial { flex: 0 0 100%; display: flex; align-items: center; gap: 8px; padding-top: 10px; margin-top: 4px; border-top: 1px solid #f0f0e8; }
+    .fn-partial label { font-size: 12px; color: #888; flex-shrink: 0; }
+    .fn-partial input { flex: 1; min-width: 0; height: 36px; border: 1px solid #e0e0d8; border-radius: 8px; padding: 0 10px; font-size: 14px; background: #fafaf8; color: #1a1a18; font-family: inherit; outline: none; }
+    .fn-partial input:focus { border-color: #639922; background: #fff; }
+    .fn-partial .p-save { height: 36px; padding: 0 14px; background: #639922; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+    .fn-partial .p-save:hover { background: #527f1c; }
+    .fn-partial .p-clear { height: 36px; padding: 0 10px; background: none; color: #aaa; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: inherit; flex-shrink: 0; }
+    .fn-partial .p-clear:hover { color: #ef4444; border-color: #fecaca; }
 
     .banner      { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; padding: 9px 12px; border-radius: 10px; margin-bottom: 10px; }
     .banner-red  { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
@@ -310,8 +320,11 @@ function getExpectedAmount(bill, ds) {
 }
 function getAmtPaid(bill, ds) {
   const k = occKey(bill.id, ds);
+  // paidKeys = fully paid — must take priority over any partial paidAmounts entry
+  if (paidKeys.includes(k)) return getExpectedAmount(bill, ds);
+  // paidAmounts = partial payment recorded by the user
   if (paidAmounts[k] !== undefined) return paidAmounts[k];
-  return paidKeys.includes(k) ? getExpectedAmount(bill, ds) : 0;
+  return 0;
 }
 
 // ─── MISC ─────────────────────────────────────────────────
@@ -912,7 +925,8 @@ function renderPayday(){
       const amtPaid = getAmtPaid(o.bill, o.ds);
       const fullyPaid = isPaidOcc(o.bill.id, o.ds);   // honours DD auto-check + paidKeys
       const partiallyPaid = !fullyPaid && amtPaid > 0 && amtPaid < expAmt;
-      return `<div class="fn-item overdue ${fullyPaid?'paid':''}" style="${partiallyPaid ? 'border-left: 4px solid #ef4444;' : ''}">
+      const itemId = `fnitem-od-${o.bill.id}-${o.ds}`;
+      return `<div class="fn-item overdue ${fullyPaid?'paid':''}" id="${itemId}" style="${partiallyPaid ? 'border-left: 4px solid #ef4444;' : ''}">
         <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')" aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
           <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
         </button>
@@ -924,6 +938,9 @@ function renderPayday(){
           </div>
         </div>
         <div class="fn-amt" style="${fullyPaid?'':'color:#991b1b'}">$${(expAmt - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
+        <button class="btn-partial" onclick="showPartialInput('${o.bill.id}','${o.ds}',${expAmt},'${itemId}')" title="Record partial payment" aria-label="Enter amount paid">
+          <i class="ti ti-pencil" style="font-size:15px" aria-hidden="true"></i>
+        </button>
       </div>`;
     }).join('')}</div>`;
 
@@ -932,7 +949,8 @@ function renderPayday(){
     const amtPaid = getAmtPaid(o.bill, o.ds);
     const fullyPaid = isPaidOcc(o.bill.id, o.ds);   // honours DD auto-check + paidKeys
     const partiallyPaid = !fullyPaid && amtPaid > 0 && amtPaid < expAmt;
-    return `<div class="fn-item ${fullyPaid?'paid':''}" style="${partiallyPaid ? 'border-left: 4px solid #639922;' : ''}">
+    const itemId = `fnitem-${o.bill.id}-${o.ds}`;
+    return `<div class="fn-item ${fullyPaid?'paid':''}" id="${itemId}" style="${partiallyPaid ? 'border-left: 4px solid #639922;' : ''}">
       <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')"
         aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
         <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
@@ -945,6 +963,9 @@ function renderPayday(){
         </div>
       </div>
       <div class="fn-amt">$${(expAmt - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
+      <button class="btn-partial" onclick="showPartialInput('${o.bill.id}','${o.ds}',${expAmt},'${itemId}')" title="Record partial payment" aria-label="Enter amount paid">
+        <i class="ti ti-pencil" style="font-size:15px" aria-hidden="true"></i>
+      </button>
     </div>`;
   };
 
@@ -989,6 +1010,59 @@ async function tapPaid(billId, ds) {
 
   // Persist in background; don't let a save error block the UI
   try { await savePaid(); } catch(e) { console.error('savePaid failed:', e); }
+}
+
+// showPartialInput: toggle an inline amount-paid input under a bill row.
+// Uses direct DOM manipulation so the panel doesn't re-render while the user is typing.
+function showPartialInput(billId, ds, expAmt, itemId) {
+  const itemEl = document.getElementById(itemId);
+  if (!itemEl) return;
+  const existing = itemEl.querySelector('.fn-partial');
+  if (existing) { existing.remove(); return; } // tap again to close
+  const bill = bills.find(b => b.id === billId);
+  const currentPaid = bill ? getAmtPaid(bill, ds) : 0;
+  const div = document.createElement('div');
+  div.className = 'fn-partial';
+  div.innerHTML = `
+    <label>Amount paid ($)</label>
+    <input type="number" min="0" max="${expAmt.toFixed(2)}" step="0.01"
+           value="${currentPaid > 0 ? currentPaid.toFixed(2) : ''}"
+           placeholder="0.00" inputmode="decimal"
+           onkeydown="if(event.key==='Enter') savePartialAmt('${billId}','${ds}',${expAmt},this)">
+    <button class="p-save" onclick="savePartialAmt('${billId}','${ds}',${expAmt},this.previousElementSibling)">Save</button>
+    <button class="p-clear" onclick="clearPartialAmt('${billId}','${ds}','${itemId}')" title="Clear payment record">Clear</button>
+  `;
+  itemEl.appendChild(div);
+  div.querySelector('input').focus();
+  div.querySelector('input').select();
+}
+
+// savePartialAmt: record how much was actually paid for a specific bill occurrence.
+// If amount >= expected → mark as fully paid. If 0 → clear. Otherwise → partial.
+async function savePartialAmt(billId, ds, expAmt, inputEl) {
+  const amount = parseFloat(inputEl.value) || 0;
+  const k = occKey(billId, ds);
+  if (amount <= 0) {
+    delete paidAmounts[k];
+    paidKeys = paidKeys.filter(x => x !== k);
+  } else if (amount >= expAmt) {
+    paidAmounts[k] = expAmt;
+    if (!paidKeys.includes(k)) paidKeys = [...paidKeys, k];
+  } else {
+    paidAmounts[k] = amount;
+    paidKeys = paidKeys.filter(x => x !== k); // partial = not yet fully paid
+  }
+  renderPayday();
+  try { await savePaid(); } catch(e) { console.error('savePartialAmt failed:', e); }
+}
+
+// clearPartialAmt: remove any payment record for an occurrence, resetting it to unpaid.
+async function clearPartialAmt(billId, ds, itemId) {
+  const k = occKey(billId, ds);
+  delete paidAmounts[k];
+  paidKeys = paidKeys.filter(x => x !== k);
+  renderPayday();
+  try { await savePaid(); } catch(e) { console.error('clearPartialAmt failed:', e); }
 }
 function renderFund(safePace){
   if (safePace === undefined) safePace = calculateSafePace();
