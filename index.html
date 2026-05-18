@@ -202,21 +202,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
 <script>
 // ─── CONSTANTS ────────────────────────────────────────────
-const FREQ_LABELS = {weekly:'Weekly',fortnightly:'Fortnightly',monthly:'Monthly',quarterly:'Quarterly',annual:'Annual'};
+const FREQ_LABELS = {oneoff:'One-off',weekly:'Weekly',fortnightly:'Fortnightly',monthly:'Monthly',quarterly:'Quarterly',annual:'Annual'};
 const FREQ_COLORS = {
+  oneoff:      {bg:'#f3f4f6',color:'#555'},
   weekly:      {bg:'#dcfce7',color:'#166534'}, fortnightly:{bg:'#d1fae5',color:'#065f46'},
   monthly:     {bg:'#dbeafe',color:'#1e40af'}, quarterly:  {bg:'#fef3c7',color:'#92400e'},
   annual:      {bg:'#ede9fe',color:'#5b21b6'}
 };
 const CAT_ICONS = {home:'🏠',utilities:'⚡',subscriptions:'📱',insurance:'🛡️',transport:'🚗',health:'❤️',other:'📋'};
 const CAT_BG    = {home:'#dcfce7',utilities:'#fef3c7',subscriptions:'#dbeafe',insurance:'#ede9fe',transport:'#d1fae5',health:'#fee2e2',other:'#f3f4f6'};
-const TO_FN = {weekly:52/26,fortnightly:1,monthly:12/26,quarterly:4/26,annual:1/26};
-const TO_YR = {weekly:52,fortnightly:26,monthly:12,quarterly:4,annual:1};
+const TO_FN = {oneoff:0,weekly:52/26,fortnightly:1,monthly:12/26,quarterly:4/26,annual:1/26};
+const TO_YR = {oneoff:0,weekly:52,fortnightly:26,monthly:12,quarterly:4,annual:1};
 
 // ─── STATE ────────────────────────────────────────────────
-// bills: [{id, name, amount, freq, date, cat, dd, fundExclude}]
-// paidKeys:  ["billId_YYYY-MM-DD"]  regular occurrences marked paid
-// ddOvrKeys: ["billId_YYYY-MM-DD"]  DD occurrences explicitly unchecked
 let bills     = [];
 let paidKeys  = [];
 let ddOvrKeys = [];
@@ -232,6 +230,7 @@ function prevCycle(d, freq) {
 }
 function nextDueOnOrAfter(bill, fromDj) {
   let d = dayjs(bill.date);
+  if (bill.freq === 'oneoff') return d;
   if (!d.isBefore(fromDj)) return d;
   const approx = {weekly:7,fortnightly:14,monthly:30.44,quarterly:91.31,annual:365.25}[bill.freq]||14;
   const skip = Math.max(0, Math.floor(fromDj.diff(d,'day')/approx) - 2);
@@ -240,11 +239,20 @@ function nextDueOnOrAfter(bill, fromDj) {
   return d;
 }
 function occurrencesInRange(bill, startDj, endDj) {
+  if (bill.freq === 'oneoff') {
+    let d = dayjs(bill.date);
+    return (!d.isBefore(startDj) && !d.isAfter(endDj)) ? [d.format('YYYY-MM-DD')] : [];
+  }
   const dates=[]; let d=nextDueOnOrAfter(bill,startDj);
   while(!d.isAfter(endDj)){dates.push(d.format('YYYY-MM-DD'));d=addCycle(d,bill.freq);}
   return dates;
 }
 function currentLiab(bill, asOfDj) {
+  if (bill.freq === 'oneoff') {
+    if (isPaidOcc(bill.id, bill.date, bill.dd)) return 0;
+    if (asOfDj.isAfter(dayjs(bill.date))) return 0;
+    return bill.amount;
+  }
   const nxt=nextDueOnOrAfter(bill,asOfDj), prv=prevCycle(nxt,bill.freq);
   const total=nxt.diff(prv,'day'), elap=Math.max(0,Math.min(asOfDj.diff(prv,'day'),total));
   return bill.amount*(elap/total);
@@ -340,6 +348,7 @@ function renderBills(){
       <div class="field-row">
         <div class="field"><label>Frequency</label>
           <select id="bFreq">
+            <option value="oneoff">One-off</option>
             <option value="weekly">Weekly</option>
             <option value="fortnightly" selected>Fortnightly</option>
             <option value="monthly">Monthly</option>
@@ -393,7 +402,7 @@ function renderBills(){
             </div>
             <div class="bill-right">
               <div class="bill-amt">$${b.amount.toFixed(2)}</div>
-              ${!b.fundExclude&&b.freq!=='fortnightly'?`<div class="bill-fn">$${fn.toFixed(2)}/fn</div>`:''}
+              ${!b.fundExclude&&b.freq!=='fortnightly'&&b.freq!=='oneoff'?`<div class="bill-fn">$${fn.toFixed(2)}/fn</div>`:''}
             </div>
             <button class="btn-del" onclick="removeBill('${b.id}')" aria-label="Remove ${esc(b.name)}"><i class="ti ti-trash" aria-hidden="true"></i></button>
           </div>`;
@@ -443,11 +452,9 @@ function renderPayday(){
 
   const start=dayjs(pv), end=start.add(13,'day');
 
-  // All occurrences in this fortnight
   const fnOccs=[];
   bills.forEach(b=>occurrencesInRange(b,start,end).forEach(ds=>fnOccs.push({bill:b,ds})));
 
-  // Overdue: unpaid occurrences in 90 days before payday
   const odStart=start.subtract(90,'day');
   const odOccs=[];
   bills.forEach(b=>occurrencesInRange(b,odStart,start.subtract(1,'day')).forEach(ds=>{
@@ -556,7 +563,6 @@ function renderFund(){
   const steady  =fundBills.reduce((s,b)=>s+toFn(b.amount,b.freq),0);
   const totalLib=fundBills.reduce((s,b)=>s+currentLiab(b,asOfDj),0);
 
-  // Overdue: unpaid occurrences in last 90 days
   const odStart=asOfDj.subtract(90,'day');
   let odAmt=0; const odList=[];
   fundBills.forEach(b=>occurrencesInRange(b,odStart,asOfDj.subtract(1,'day')).forEach(ds=>{
@@ -597,7 +603,7 @@ function renderFund(){
         const pct=b.amount>0?lib/b.amount*100:0;
         const nxtStr=nxtDj.format('D MMM YYYY');
         const prevDue=prevCycle(nextDueOnOrAfter(b,asOfDj),b.freq);
-        const isOvr=asOfDj.isAfter(prevDue)&&!isPaidOcc(b.id,prevDue.format('YYYY-MM-DD'),b.dd)&&prevDue.isAfter(dayjs(b.date).subtract(1,'day'));
+        const isOvr=b.freq!=='oneoff'&&asOfDj.isAfter(prevDue)&&!isPaidOcc(b.id,prevDue.format('YYYY-MM-DD'),b.dd)&&prevDue.isAfter(dayjs(b.date).subtract(1,'day'));
         const fc=FREQ_COLORS[b.freq]||FREQ_COLORS.monthly;
         return `<div class="lib-row">
           <div class="lib-info">
