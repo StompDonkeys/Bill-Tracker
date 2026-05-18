@@ -91,6 +91,8 @@
     .bill-fn   { font-size: 11px; color: #888; }
     .btn-del   { background: none; border: none; cursor: pointer; color: #ccc; padding: 6px; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s, background 0.15s; }
     .btn-del:hover { color: #ef4444; background: #fef2f2; }
+    .btn-edit   { background: none; border: none; cursor: pointer; color: #ccc; padding: 6px; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s, background 0.15s; }
+    .btn-edit:hover { color: #639922; background: #f0fdf4; }
 
     .empty { text-align: center; padding: 2.5rem 1rem; color: #bbb; font-size: 14px; }
     .empty i { font-size: 38px; display: block; margin-bottom: 8px; }
@@ -218,8 +220,9 @@ const TO_YR = {oneoff:0,weekly:52,fortnightly:26,monthly:12,quarterly:4,annual:1
 let bills     = [];
 let paidKeys  = [];
 let ddOvrKeys = [];
+let paidAmounts = {};
 let settings  = {balance:0, balanceDate:tod(), catchupFortnights:2, paydayDate:tod(), setAside:0};
-let uid = null, db = null, saveTimer = null;
+let uid = null, db = null, saveTimer = null, editingId = null;
 
 // ─── RECURRENCE ───────────────────────────────────────────
 function addCycle(d, freq) {
@@ -249,9 +252,10 @@ function occurrencesInRange(bill, startDj, endDj) {
 }
 function currentLiab(bill, asOfDj) {
   if (bill.freq === 'oneoff') {
-    if (isPaidOcc(bill.id, bill.date, bill.dd)) return 0;
+    const amtPaid = getAmtPaid(bill, bill.date);
+    if (amtPaid >= bill.amount) return 0;
     if (asOfDj.isAfter(dayjs(bill.date))) return 0;
-    return bill.amount;
+    return bill.amount - amtPaid;
   }
   const nxt=nextDueOnOrAfter(bill,asOfDj), prv=prevCycle(nxt,bill.freq);
   const total=nxt.diff(prv,'day'), elap=Math.max(0,Math.min(asOfDj.diff(prv,'day'),total));
@@ -260,11 +264,19 @@ function currentLiab(bill, asOfDj) {
 
 // ─── PAID STATE ───────────────────────────────────────────
 function occKey(id,ds)      { return `${id}_${ds}`; }
-function isPaidOcc(id,ds,dd){ const k=occKey(id,ds); return dd?!ddOvrKeys.includes(k):paidKeys.includes(k); }
-function toggleOcc(id,ds,dd){
-  const k=occKey(id,ds);
-  if(dd){ ddOvrKeys=ddOvrKeys.includes(k)?ddOvrKeys.filter(x=>x!==k):[...ddOvrKeys,k]; }
-  else  { paidKeys =paidKeys.includes(k) ?paidKeys.filter(x=>x!==k) :[...paidKeys,k];  }
+function isPaidOcc(id, ds) {
+  const bill = bills.find(b => b.id === id);
+  if (!bill) return false;
+  return getAmtPaid(bill, ds) >= bill.amount;
+}
+function getAmtPaid(bill, ds) {
+  const k = occKey(bill.id, ds);
+  if (paidAmounts[k] !== undefined) return paidAmounts[k];
+  if (bill.dd) {
+    return ddOvrKeys.includes(k) ? 0 : bill.amount;
+  } else {
+    return paidKeys.includes(k) ? bill.amount : 0;
+  }
 }
 
 // ─── MISC ─────────────────────────────────────────────────
@@ -304,7 +316,11 @@ async function loadData(){
   ]);
   bills=bs.docs.map(d=>({id:d.id,...d.data()}));
   if(ss.exists) settings={...settings,...ss.data()};
-  if(ps.exists){paidKeys=ps.data().paidKeys||[];ddOvrKeys=ps.data().ddOvrKeys||[];}
+  if(ps.exists){
+    paidKeys=ps.data().paidKeys||[];
+    ddOvrKeys=ps.data().ddOvrKeys||[];
+    paidAmounts=ps.data().paidAmounts||{};
+  }
   renderAll();
 }
 
@@ -318,7 +334,7 @@ function saveSettingsDebounced(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{await db.doc(`users/${uid}/meta/settings`).set(settings,{merge:true});toast('Saved ✓');},700);
 }
-async function savePaid(){ await db.doc(`users/${uid}/meta/paid`).set({paidKeys,ddOvrKeys}); toast('Saved ✓'); }
+async function savePaid(){ await db.doc(`users/${uid}/meta/paid`).set({paidKeys,ddOvrKeys,paidAmounts}); toast('Saved ✓'); }
 function toast(msg){ const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1600); }
 
 // ─── NAVIGATION ───────────────────────────────────────────
@@ -339,8 +355,8 @@ function renderBills(){
   const todDj=dayjs(tod());
 
   document.getElementById('panel-bills').innerHTML=`
-    <p class="section-label">Add a bill</p>
-    <div class="card">
+    <p class="section-label" id="addBillHeader">Add a bill</p>
+    <div class="card" id="formContainer">
       <div class="field-row">
         <div class="field"><label>Bill name</label><input id="bName" type="text" placeholder="e.g. Rent, Netflix" autocomplete="off"></div>
         <div class="field"><label>Amount ($)</label><input id="bAmt" type="number" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
@@ -404,10 +420,63 @@ function renderBills(){
               <div class="bill-amt">$${b.amount.toFixed(2)}</div>
               ${!b.fundExclude&&b.freq!=='fortnightly'&&b.freq!=='oneoff'?`<div class="bill-fn">$${fn.toFixed(2)}/fn</div>`:''}
             </div>
-            <button class="btn-del" onclick="removeBill('${b.id}')" aria-label="Remove ${esc(b.name)}"><i class="ti ti-trash" aria-hidden="true"></i></button>
+            <div style="display:flex; gap:4px; align-items:center;">
+              <button class="btn-edit" onclick="startEdit('${b.id}')" aria-label="Edit ${esc(b.name)}"><i class="ti ti-edit" aria-hidden="true"></i></button>
+              <button class="btn-del" onclick="removeBill('${b.id}')" aria-label="Remove ${esc(b.name)}"><i class="ti ti-trash" aria-hidden="true"></i></button>
+            </div>
           </div>`;
         }).join('')}
     </div>`;
+}
+
+function startEdit(id) {
+  const b = bills.find(x => x.id === id);
+  if (!b) return;
+  editingId = id;
+  switchTab('bills');
+  
+  document.getElementById('bName').value = b.name;
+  document.getElementById('bAmt').value = b.amount;
+  document.getElementById('bFreq').value = b.freq;
+  document.getElementById('bDate').value = b.date;
+  document.getElementById('bCat').value = b.cat;
+  document.getElementById('bDD').checked = b.dd;
+  document.getElementById('bExclude').checked = b.fundExclude;
+  
+  document.getElementById('addBillHeader').textContent = "Edit bill";
+  const btn = document.getElementById('addBtn');
+  btn.innerHTML = '<i class="ti ti-device-floppy" aria-hidden="true"></i> Save Changes';
+  
+  if (!document.getElementById('cancelEditBtn')) {
+    const cancelBtn = document.createElement('button');
+    cancelBtn.id = 'cancelEditBtn';
+    cancelBtn.className = 'btn-primary';
+    cancelBtn.style.background = '#aaa';
+    cancelBtn.style.marginTop = '8px';
+    cancelBtn.innerHTML = 'Cancel Edit';
+    cancelBtn.onclick = cancelEdit;
+    document.getElementById('formContainer').appendChild(cancelBtn);
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editingId = null;
+  document.getElementById('bName').value = '';
+  document.getElementById('bAmt').value = '';
+  document.getElementById('bFreq').value = 'fortnightly';
+  document.getElementById('bDate').value = tod();
+  document.getElementById('bCat').value = 'home';
+  document.getElementById('bDD').checked = false;
+  document.getElementById('bExclude').checked = false;
+  
+  document.getElementById('addBillHeader').textContent = "Add a bill";
+  const btn = document.getElementById('addBtn');
+  btn.innerHTML = '<i class="ti ti-plus" aria-hidden="true"></i> Add bill';
+  btn.disabled = false;
+  
+  const cBtn = document.getElementById('cancelEditBtn');
+  if (cBtn) cBtn.remove();
 }
 
 async function addBill(){
@@ -421,10 +490,36 @@ async function addBill(){
   const err=document.getElementById('bErr'), btn=document.getElementById('addBtn');
   if(!name||isNaN(amount)||amount<=0||!date){err.style.display='block';return;}
   err.style.display='none';
-  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader" aria-hidden="true"></i> Saving…';
-  const newId=await addBillFS({name,amount,freq,date,cat,dd,fundExclude});
-  bills.push({id:newId,name,amount,freq,date,cat,dd,fundExclude});
-  renderAll(); toast('Bill added ✓');
+  btn.disabled=true;
+
+  if (editingId) {
+    btn.innerHTML='<i class="ti ti-loader" aria-hidden="true"></i> Saving updates…';
+    await db.doc(`users/${uid}/bills/${editingId}`).update({name,amount,freq,date,cat,dd,fundExclude});
+    const idx = bills.findIndex(b => b.id === editingId);
+    if (idx !== -1) bills[idx] = { id: editingId, name, amount, freq, date, cat, dd, fundExclude };
+    editingId = null;
+    const cBtn = document.getElementById('cancelEditBtn');
+    if (cBtn) cBtn.remove();
+    toast('Bill updated ✓');
+  } else {
+    btn.innerHTML='<i class="ti ti-loader" aria-hidden="true"></i> Saving…';
+    const newId=await addBillFS({name,amount,freq,date,cat,dd,fundExclude});
+    bills.push({id:newId,name,amount,freq,date,cat,dd,fundExclude});
+    toast('Bill added ✓');
+  }
+
+  document.getElementById('bName').value = '';
+  document.getElementById('bAmt').value = '';
+  document.getElementById('bFreq').value = 'fortnightly';
+  document.getElementById('bDate').value = tod();
+  document.getElementById('bCat').value = 'home';
+  document.getElementById('bDD').checked = false;
+  document.getElementById('bExclude').checked = false;
+  document.getElementById('addBillHeader').textContent = "Add a bill";
+  btn.innerHTML='<i class="ti ti-plus" aria-hidden="true"></i> Add bill';
+  btn.disabled = false;
+  
+  renderAll();
 }
 
 async function removeBill(id){
@@ -433,6 +528,8 @@ async function removeBill(id){
   bills=bills.filter(b=>b.id!==id);
   paidKeys=paidKeys.filter(k=>!k.startsWith(id+'_'));
   ddOvrKeys=ddOvrKeys.filter(k=>!k.startsWith(id+'_'));
+  // Clean up paid amounts tracking object keys
+  Object.keys(paidAmounts).forEach(k => { if(k.startsWith(id+'_')) delete paidAmounts[k]; });
   await savePaid(); renderAll();
 }
 
@@ -458,16 +555,21 @@ function renderPayday(){
   const odStart=start.subtract(90,'day');
   const odOccs=[];
   bills.forEach(b=>occurrencesInRange(b,odStart,start.subtract(1,'day')).forEach(ds=>{
-    if(!isPaidOcc(b.id,ds,b.dd)) odOccs.push({bill:b,ds});
+    if(!isPaidOcc(b.id,ds)) odOccs.push({bill:b,ds});
   }));
 
   const fundOccs=fnOccs.filter(o=>!o.bill.fundExclude);
   const payOccs =fnOccs.filter(o=> o.bill.fundExclude);
   const fundTotal=fundOccs.reduce((s,o)=>s+o.bill.amount,0);
   const payTotal =payOccs.reduce((s,o)=>s+o.bill.amount,0);
-  const fundPaid =fundOccs.filter(o=>isPaidOcc(o.bill.id,o.ds,o.bill.dd)).reduce((s,o)=>s+o.bill.amount,0);
+  const fundPaid =fundOccs.reduce((s,o)=>s+getAmtPaid(o.bill,o.ds),0);
   const remain   =Math.max(fundTotal-fundPaid,0);
-  const odTotal  =odOccs.reduce((s,o)=>s+o.bill.amount,0);
+  
+  const odTotal  =odOccs.reduce((s,o)=>{
+    const amtPaid = getAmtPaid(o.bill, o.ds);
+    return s + (o.bill.amount - amtPaid);
+  },0);
+  
   const over=sa>0&&fundTotal>sa, pct=sa>0?Math.min(fundTotal/sa*100,100):0;
   const ddCount=fundOccs.filter(o=>o.bill.dd).length;
 
@@ -487,32 +589,41 @@ function renderPayday(){
     `<p class="section-label" style="color:#991b1b">⚠ Overdue bills</p>
     <div class="banner banner-red"><i class="ti ti-alert-circle" aria-hidden="true"></i>$${odTotal.toFixed(2)} outstanding — included in fund shortfall</div>
     <div class="fn-list">${odOccs.sort((a,b)=>a.ds.localeCompare(b.ds)).map(o=>{
-      const paid=isPaidOcc(o.bill.id,o.ds,o.bill.dd);
-      return `<div class="fn-item overdue ${paid?'paid':''}">
-        <button class="chk ${paid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}',${!!o.bill.dd})" aria-label="${paid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
+      const amtPaid = getAmtPaid(o.bill, o.ds);
+      const fullyPaid = amtPaid >= o.bill.amount;
+      const partiallyPaid = amtPaid > 0 && amtPaid < o.bill.amount;
+      return `<div class="fn-item overdue ${fullyPaid?'paid':''}" style="${partiallyPaid ? 'border-left: 4px solid #ef4444;' : ''}">
+        <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')" aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
           <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
         </button>
         <div style="flex:1;min-width:0">
-          <div class="fn-name" style="${paid?'':'color:#991b1b'}">${esc(o.bill.name)}${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}</div>
-          <div class="fn-due" style="${paid?'':'color:#ef4444'}">Was due ${dayjs(o.ds).format('ddd D MMM')} · overdue</div>
+          <div class="fn-name" style="${fullyPaid?'':'color:#991b1b'}">${esc(o.bill.name)}${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}</div>
+          <div class="fn-due" style="${fullyPaid?'':'color:#ef4444'}">
+            Was due ${dayjs(o.ds).format('ddd D MMM')}
+            ${partiallyPaid ? `· <span style="font-weight:600">Paid $${amtPaid.toFixed(2)} of $${o.bill.amount.toFixed(2)}</span>` : ' · overdue'}
+          </div>
         </div>
-        <div class="fn-amt" style="${paid?'':'color:#991b1b'}">$${o.bill.amount.toFixed(2)}</div>
+        <div class="fn-amt" style="${fullyPaid?'':'color:#991b1b'}">$${(o.bill.amount - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
       </div>`;
     }).join('')}</div>`;
 
   const occRow=o=>{
-    const paid=isPaidOcc(o.bill.id,o.ds,o.bill.dd);
-    return `<div class="fn-item ${paid?'paid':''}">
-      <button class="chk ${paid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}',${!!o.bill.dd})"
-        title="${o.bill.dd?(paid?'DD — tap to uncheck if payment failed':'DD — tap to confirm paid'):''}"
-        aria-label="${paid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
+    const amtPaid = getAmtPaid(o.bill, o.ds);
+    const fullyPaid = amtPaid >= o.bill.amount;
+    const partiallyPaid = amtPaid > 0 && amtPaid < o.bill.amount;
+    return `<div class="fn-item ${fullyPaid?'paid':''}" style="${partiallyPaid ? 'border-left: 4px solid #639922;' : ''}">
+      <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')"
+        aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
         <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
       </button>
       <div style="flex:1;min-width:0">
         <div class="fn-name">${esc(o.bill.name)}${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}</div>
-        <div class="fn-due">Due ${dayjs(o.ds).format('ddd D MMM')}${o.bill.dd?' · auto-deducted':''}</div>
+        <div class="fn-due">
+          Due ${dayjs(o.ds).format('ddd D MMM')}
+          ${partiallyPaid ? `· <span style="color:#639922;font-weight:600;">Paid $${amtPaid.toFixed(2)} of $${o.bill.amount.toFixed(2)}</span>` : (o.bill.dd ? ' · auto-deducted' : '')}
+        </div>
       </div>
-      <div class="fn-amt">$${o.bill.amount.toFixed(2)}</div>
+      <div class="fn-amt">$${(o.bill.amount - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
     </div>`;
   };
 
@@ -534,9 +645,49 @@ function renderPayday(){
 
 function setSetting(k,v){ settings[k]=v; saveSettingsDebounced(); renderPayday(); }
 
-async function tapPaid(billId, ds, isDd){
-  toggleOcc(billId, ds, isDd===true||isDd==='true');
-  await savePaid(); renderPayday();
+async function tapPaid(billId, ds){
+  const bill = bills.find(b => b.id === billId);
+  if (!bill) return;
+  const k = occKey(billId, ds);
+  const currentPaid = getAmtPaid(bill, ds);
+  
+  if (currentPaid > 0) {
+    if (confirm(`Clear payment of $${currentPaid.toFixed(2)} for ${bill.name}? This will add $${currentPaid.toFixed(2)} back to your fund balance.`)) {
+      settings.balance += currentPaid;
+      settings.balanceDate = tod();
+      paidAmounts[k] = 0;
+      paidKeys = paidKeys.filter(x => x !== k);
+      if (bill.dd && !ddOvrKeys.includes(k)) ddOvrKeys.push(k);
+      
+      await Promise.all([
+        savePaid(),
+        db.doc(`users/${uid}/meta/settings`).set(settings, {merge:true})
+      ]);
+      renderAll();
+    }
+    return;
+  }
+  
+  const rem = bill.amount - currentPaid;
+  const input = prompt(`Enter amount paid for ${bill.name}:`, rem.toFixed(2));
+  if (input === null) return;
+  const amt = parseFloat(input);
+  if (isNaN(amt) || amt <= 0) { alert('Please enter a valid amount.'); return; }
+  
+  settings.balance -= amt;
+  settings.balanceDate = tod();
+  paidAmounts[k] = currentPaid + amt;
+  
+  if (paidAmounts[k] >= bill.amount) {
+    if (!paidKeys.includes(k)) paidKeys.push(k);
+    if (bill.dd) ddOvrKeys = ddOvrKeys.filter(x => x !== k);
+  }
+  
+  await Promise.all([
+    savePaid(),
+    db.doc(`users/${uid}/meta/settings`).set(settings, {merge:true})
+  ]);
+  renderAll();
 }
 
 // ─── FUND PANEL ───────────────────────────────────────────
@@ -566,7 +717,12 @@ function renderFund(){
   const odStart=asOfDj.subtract(90,'day');
   let odAmt=0; const odList=[];
   fundBills.forEach(b=>occurrencesInRange(b,odStart,asOfDj.subtract(1,'day')).forEach(ds=>{
-    if(!isPaidOcc(b.id,ds,b.dd)){odAmt+=b.amount;odList.push({bill:b,ds});}
+    const amtPaid = getAmtPaid(b, ds);
+    if(amtPaid < b.amount){
+      const remaining = b.amount - amtPaid;
+      odAmt += remaining;
+      odList.push({bill:b,ds});
+    }
   }));
 
   const shortfall=(totalLib-balance)+odAmt;
@@ -591,7 +747,7 @@ function renderFund(){
       <div class="metric"><div class="m-label">Accrued liability</div><div class="m-value">$${totalLib.toFixed(2)}</div><div class="m-sub">Regular bill accrual</div></div>
       <div class="metric"><div class="m-label">Account balance</div><div class="m-value">$${balance.toFixed(2)}</div><div class="m-sub">As of ${dayjs(asOf).format('D MMM YYYY')}</div></div>
     </div>
-    ${odAmt>0?`<div class="banner banner-red" style="margin-bottom:12px"><i class="ti ti-alert-circle" aria-hidden="true"></i><strong>$${odAmt.toFixed(2)}</strong> in ${odList.length} overdue unpaid bill${odList.length>1?'s':''} added to shortfall</div>`:''}
+    ${odAmt>0?`<div class="banner banner-red" style="margin-bottom:12px"><i class="ti ti-alert-circle" aria-hidden="true"></i><strong>$${odAmt.toFixed(2)}</strong> in overdue unpaid bill balance added to shortfall</div>`:''}
     ${behind?`<p class="section-label">Catch-up period</p><div class="cu-sel">${[1,2,3,4].map(n=>`<button class="cu-btn ${catchup===n?'on':''}" onclick="setFund('catchupFortnights',${n})">${n} fn${n>1?'s':''}</button>`).join('')}</div>`:''}
     <p class="section-label">Contribution plan</p>
     <div class="card" style="padding:8px 14px">${buildTimeline(steady,shortfall,behind,catchup)}</div>
@@ -603,7 +759,7 @@ function renderFund(){
         const pct=b.amount>0?lib/b.amount*100:0;
         const nxtStr=nxtDj.format('D MMM YYYY');
         const prevDue=prevCycle(nextDueOnOrAfter(b,asOfDj),b.freq);
-        const isOvr=b.freq!=='oneoff'&&asOfDj.isAfter(prevDue)&&!isPaidOcc(b.id,prevDue.format('YYYY-MM-DD'),b.dd)&&prevDue.isAfter(dayjs(b.date).subtract(1,'day'));
+        const isOvr=b.freq!=='oneoff'&&asOfDj.isAfter(prevDue)&&getAmtPaid(b, prevDue.format('YYYY-MM-DD')) < b.amount&&prevDue.isAfter(dayjs(b.date).subtract(1,'day'));
         const fc=FREQ_COLORS[b.freq]||FREQ_COLORS.monthly;
         return `<div class="lib-row">
           <div class="lib-info">
