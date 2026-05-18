@@ -281,11 +281,7 @@ function getAmtPaid(bill, ds) {
   const k = occKey(bill.id, ds);
   if (paidAmounts[k] !== undefined) return paidAmounts[k];
   const expAmt = getExpectedAmount(bill, ds);
-  if (bill.dd) {
-    return ddOvrKeys.includes(k) ? 0 : expAmt;
-  } else {
-    return paidKeys.includes(k) ? expAmt : 0;
-  }
+  return paidKeys.includes(k) ? expAmt : 0;
 }
 
 // ─── MISC ─────────────────────────────────────────────────
@@ -514,7 +510,7 @@ function renderBills(){
         </select>
       </div>
       <div class="toggle-row">
-        <div class="toggle-label"><strong>Direct debit</strong><span>Auto-deducted — pre-ticked, tap to uncheck if payment fails</span></div>
+        <div class="toggle-label"><strong>Direct debit</strong><span>Auto-deducted — highlights automated bills, but requires manual confirmation to check off</span></div>
         <label class="toggle"><input type="checkbox" id="bDD"><span class="slider"></span></label>
       </div>
       <div class="toggle-row" style="margin-bottom:0">
@@ -636,9 +632,6 @@ async function addBill(){
           const key = occKey(editingId, ds);
           if (historyAmounts[key] === undefined) {
             historyAmounts[key] = oldBill.amount;
-            if (oldBill.dd && !ddOvrKeys.includes(key)) {
-              paidAmounts[key] = oldBill.amount;
-            }
           }
         });
       }
@@ -740,7 +733,7 @@ function renderPayday(){
       <span style="font-size:12px;color:#888">Set aside: $${sa.toFixed(2)}</span>
       <span style="font-size:12px;font-weight:700;color:${over?'#ef4444':'#639922'}">${over?'⚠ Over by $'+(fundTotal-sa).toFixed(2):'✓ $'+(sa-fundTotal).toFixed(2)+' to spare'}</span>
     </div><div class="prog-wrap"><div class="prog-fill ${over?'over':''}" style="width:${pct.toFixed(1)}%"></div></div>`:''}
-    ${ddCount>0?`<div class="banner banner-blue" style="margin-top:10px;"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} — pre-ticked, tap to uncheck if payment fails</div>`:''}`;
+    ${ddCount>0?`<div class="banner banner-blue" style="margin-top:10px;"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} scheduled this cycle — review and confirm once deducted</div>`:''}`;
 
   const odHtml=odOccs.length===0?'':
     `<p class="section-label" style="color:#991b1b">⚠ Overdue bills</p>
@@ -818,7 +811,6 @@ async function tapPaid(billId, ds){
       paidAmounts[k] = 0;
       delete historyAmounts[k];
       paidKeys = paidKeys.filter(x => x !== k);
-      if (bill.dd && !ddOvrKeys.includes(k)) ddOvrKeys.push(k);
       
       await Promise.all([
         savePaid(),
@@ -842,7 +834,6 @@ async function tapPaid(billId, ds){
   
   if (paidAmounts[k] >= expAmt) {
     if (!paidKeys.includes(k)) paidKeys.push(k);
-    if (bill.dd) ddOvrKeys = ddOvrKeys.filter(x => x !== k);
   }
   
   await Promise.all([
