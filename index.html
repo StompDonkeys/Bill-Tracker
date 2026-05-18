@@ -910,8 +910,8 @@ function renderPayday(){
     <div class="fn-list">${odOccs.sort((a,b)=>a.ds.localeCompare(b.ds)).map(o=>{
       const expAmt = getExpectedAmount(o.bill, o.ds);
       const amtPaid = getAmtPaid(o.bill, o.ds);
-      const fullyPaid = amtPaid >= expAmt;
-      const partiallyPaid = amtPaid > 0 && amtPaid < expAmt;
+      const fullyPaid = isPaidOcc(o.bill.id, o.ds);   // honours DD auto-check + paidKeys
+      const partiallyPaid = !fullyPaid && amtPaid > 0 && amtPaid < expAmt;
       return `<div class="fn-item overdue ${fullyPaid?'paid':''}" style="${partiallyPaid ? 'border-left: 4px solid #ef4444;' : ''}">
         <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')" aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
           <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
@@ -930,8 +930,8 @@ function renderPayday(){
   const occRow=o=>{
     const expAmt = getExpectedAmount(o.bill, o.ds);
     const amtPaid = getAmtPaid(o.bill, o.ds);
-    const fullyPaid = amtPaid >= expAmt;
-    const partiallyPaid = amtPaid > 0 && amtPaid < expAmt;
+    const fullyPaid = isPaidOcc(o.bill.id, o.ds);   // honours DD auto-check + paidKeys
+    const partiallyPaid = !fullyPaid && amtPaid > 0 && amtPaid < expAmt;
     return `<div class="fn-item ${fullyPaid?'paid':''}" style="${partiallyPaid ? 'border-left: 4px solid #639922;' : ''}">
       <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')"
         aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
@@ -965,31 +965,30 @@ function renderPayday(){
 }
 
 // tapPaid: toggle paid state for a specific bill occurrence.
-// For DD bills, tapping when pre-checked unchecks (marks failed).
-// For regular bills, tapping marks paid; tapping again marks unpaid.
+// DD bills are pre-checked (auto-paid) by default; tapping marks them as failed.
+// Regular bills require manual check-off; tapping toggles paid state.
 async function tapPaid(billId, ds) {
   const k = occKey(billId, ds);
   const bill = bills.find(b => b.id === billId);
   if (!bill) return;
 
   if (bill.dd) {
-    // DD bills: pre-checked by default (isPaidOcc returns true when no override).
-    // Tapping adds/removes a "failed DD" override via ddOvrKeys.
-    if (ddOvrKeys.includes(k)) {
-      ddOvrKeys = ddOvrKeys.filter(x => x !== k); // remove override → auto-paid again
-    } else {
-      ddOvrKeys = [...ddOvrKeys, k]; // add override → mark as failed/unpaid
-    }
+    // DD: toggle override — adding to ddOvrKeys means "DD failed, treat as unpaid"
+    ddOvrKeys = ddOvrKeys.includes(k)
+      ? ddOvrKeys.filter(x => x !== k)   // remove override → auto-paid again
+      : [...ddOvrKeys, k];               // add override → mark as failed
   } else {
-    // Regular bills: toggle paidKeys
-    if (paidKeys.includes(k)) {
-      paidKeys = paidKeys.filter(x => x !== k);
-    } else {
-      paidKeys = [...paidKeys, k];
-    }
+    // Regular: toggle paidKeys
+    paidKeys = paidKeys.includes(k)
+      ? paidKeys.filter(x => x !== k)
+      : [...paidKeys, k];
   }
-  await savePaid();
+
+  // Optimistic update — render immediately so the UI reacts instantly
   renderPayday();
+
+  // Persist in background; don't let a save error block the UI
+  try { await savePaid(); } catch(e) { console.error('savePaid failed:', e); }
 }
 function renderFund(safePace){
   if (safePace === undefined) safePace = calculateSafePace();
