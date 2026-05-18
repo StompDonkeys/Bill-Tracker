@@ -143,7 +143,7 @@
 
     .tl-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f0f0e8; }
     .tl-row:last-child { border-bottom: none; }
-    .tl-fn  { font-size: 12px; color: #888; width: 72px; flex-shrink: 0; }
+    .tl-fn  { font-size: 12px; color: #888; width: 110px; flex-shrink: 0; }
     .tl-bw  { flex: 1; height: 6px; background: #e8e8e0; border-radius: 6px; overflow: hidden; }
     .tl-b   { height: 100%; border-radius: 6px; background: #639922; }
     .tl-b.s { background: #9FE1CB; }
@@ -184,14 +184,16 @@
     </div>
   </header>
   <main class="scroll-content">
-    <div class="panel active" id="panel-bills"></div>
+    <div class="panel active" id="panel-overview"></div>
+    <div class="panel"        id="panel-bills"></div>
     <div class="panel"        id="panel-payday"></div>
     <div class="panel"        id="panel-fund"></div>
   </main>
   <nav class="tabbar" aria-label="Main navigation">
-    <button class="tabbar-item active" id="tab-bills"  onclick="switchTab('bills')"><i class="ti ti-list" aria-hidden="true"></i>My bills</button>
-    <button class="tabbar-item"        id="tab-payday" onclick="switchTab('payday')"><i class="ti ti-calendar-dollar" aria-hidden="true"></i>Payday</button>
-    <button class="tabbar-item"        id="tab-fund"   onclick="switchTab('fund')"><i class="ti ti-piggy-bank" aria-hidden="true"></i>Bills fund</button>
+    <button class="tabbar-item active" id="tab-overview" onclick="switchTab('overview')"><i class="ti ti-dashboard" aria-hidden="true"></i>Overview</button>
+    <button class="tabbar-item"        id="tab-bills"    onclick="switchTab('bills')"><i class="ti ti-list" aria-hidden="true"></i>My bills</button>
+    <button class="tabbar-item"        id="tab-payday"   onclick="switchTab('payday')"><i class="ti ti-calendar-dollar" aria-hidden="true"></i>Payday</button>
+    <button class="tabbar-item"        id="tab-fund"     onclick="switchTab('fund')"><i class="ti ti-piggy-bank" aria-hidden="true"></i>Bills fund</button>
   </nav>
 </div>
 
@@ -222,7 +224,7 @@ let paidKeys  = [];
 let ddOvrKeys = [];
 let paidAmounts = {};
 let historyAmounts = {};
-let settings  = {balance:0, balanceDate:tod(), catchupFortnights:2, paydayDate:tod(), setAside:0};
+let settings  = {balance:0, balanceDate:tod(), catchupFortnights:2, paydayDate:tod(), setAside:0, paydayPay:0};
 let uid = null, db = null, saveTimer = null, editingId = null;
 
 // ─── RECURRENCE ───────────────────────────────────────────
@@ -303,7 +305,7 @@ auth.onAuthStateChanged(async user=>{
     if(user.photoURL){av.src=user.photoURL;av.style.display='block';}
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('mainApp').style.display='block';
-    document.getElementById('panel-bills').innerHTML='<div class="empty"><i class="ti ti-loader" style="font-size:28px"></i>Loading…</div>';
+    document.getElementById('panel-overview').innerHTML='<div class="empty"><i class="ti ti-loader" style="font-size:28px"></i>Loading…</div>';
     await loadData();
   } else {
     uid=null;
@@ -352,7 +354,129 @@ function switchTab(tab){
   document.getElementById('tab-'+tab).classList.add('active');
   document.getElementById('panel-'+tab).classList.add('active');
 }
-function renderAll(){ renderBills(); renderPayday(); renderFund(); }
+function renderAll(){ renderOverview(); renderBills(); renderPayday(); renderFund(); }
+
+// ─── CALCULATION ENGINE HELPERS ───────────────────────────
+function calculateSafePace() {
+  const fundBills = bills.filter(b => !b.fundExclude);
+  if (!fundBills.length) return 0;
+  
+  const balance = settings.balance || 0;
+  const asOf = settings.balanceDate || tod();
+  const asOfDj = dayjs(asOf);
+  
+  const odStart = asOfDj.subtract(90, 'day');
+  let odAmt = 0;
+  fundBills.forEach(b => {
+    occurrencesInRange(b, odStart, asOfDj.subtract(1, 'day')).forEach(ds => {
+      const amtPaid = getAmtPaid(b, ds);
+      const expAmt = getExpectedAmount(b, ds);
+      if (amtPaid < expAmt) {
+        odAmt += (expAmt - amtPaid);
+      }
+    });
+  });
+
+  let maxSimRate = 0;
+  let runningBillsSum = 0;
+  const simStart = dayjs(settings.paydayDate || tod());
+  
+  for (let k = 1; k <= 52; k++) {
+    const fnStart = simStart.add((k - 1) * 14, 'day');
+    const fnEnd = fnStart.add(13, 'day');
+    let fnBillsAmt = 0;
+    
+    fundBills.forEach(b => {
+      occurrencesInRange(b, fnStart, fnEnd).forEach(ds => {
+        const amtPaid = getAmtPaid(b, ds);
+        fnBillsAmt += Math.max(getExpectedAmount(b, ds) - amtPaid, 0);
+      });
+    });
+    
+    runningBillsSum += fnBillsAmt;
+    const requiredRate = (runningBillsSum + odAmt - balance) / k;
+    if (requiredRate > maxSimRate) {
+      maxSimRate = requiredRate;
+    }
+  }
+  return maxSimRate;
+}
+
+// ─── OVERVIEW PANEL ───────────────────────────────────────
+function renderOverview() {
+  const pay = settings.paydayPay || 0;
+  const safePace = calculateSafePace();
+  const start = dayjs(settings.paydayDate || tod());
+  const end = start.add(13, 'day');
+  
+  let directFromPayAmt = 0;
+  let autoPaidDDAmt = 0;
+  
+  bills.forEach(b => {
+    occurrencesInRange(b, start, end).forEach(ds => {
+      const expAmt = getExpectedAmount(b, ds);
+      if (b.fundExclude) {
+        directFromPayAmt += expAmt;
+      }
+      if (b.dd) {
+        autoPaidDDAmt += expAmt;
+      }
+    });
+  });
+  
+  const disposable = pay - safePace - directFromPayAmt;
+  const isNegative = disposable < 0;
+
+  document.getElementById('panel-overview').innerHTML = `
+    <p class="section-label">Payday Dashboard</p>
+    <div class="hero" style="background: #1e40af; margin-bottom: 12px;">
+      <div class="hero-label">Estimated Disposable Income</div>
+      <div class="hero-amount" style="${isNegative ? 'color: #fca5a5;' : ''}">$${disposable.toFixed(2)}</div>
+      <div class="hero-sub">Uncommitted cash remaining inside your spending account this cycle after covering structural obligations.</div>
+    </div>
+
+    <p class="section-label">Income & Obligations</p>
+    <div class="card">
+      <div class="field">
+        <label>Payday Net Pay ($)</label>
+        <input type="number" value="${pay || ''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal" onchange="settings.paydayPay = parseFloat(this.value)||0; saveSettingsDebounced(); renderAll();">
+      </div>
+      
+      <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 9px; font-size: 14px;">
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e8e8e0; padding-bottom: 5px;">
+          <span style="color: #666;">💰 Take-home Pay:</span>
+          <strong>+$${pay.toFixed(2)}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e8e8e0; padding-bottom: 5px;">
+          <span style="color: #666;">🛡️ Bills Fund Deposit (Safe Pace):</span>
+          <span style="color: #065f46; font-weight: 600;">-$${safePace.toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e8e8e0; padding-bottom: 5px;">
+          <span style="color: #666;">🚗 Paid From Pay (Excluded Bills):</span>
+          <span style="color: #991b1b; font-weight: 600;">-$${directFromPayAmt.toFixed(2)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-weight: 700; margin-top: 5px; font-size: 15px;">
+          <span>🎈 Disposable Income Left:</span>
+          <span style="color: ${isNegative ? '#ef4444' : '#1e40af'}">$${disposable.toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="section-label">Automation Summary</p>
+    <div class="grid2">
+      <div class="metric">
+        <div class="m-label">Auto-Paid via DD</div>
+        <div class="m-value" style="color: #1e40af;">$${autoPaidDDAmt.toFixed(2)}</div>
+        <div class="m-sub">Direct debits running this cycle</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Fund Target</div>
+        <div class="m-value" style="color: #065f46;">$${safePace.toFixed(2)}</div>
+        <div class="m-sub">Move to Bills account today</div>
+      </div>
+    </div>
+  `;
+}
 
 // ─── BILLS PANEL ──────────────────────────────────────────
 function renderBills(){
@@ -567,8 +691,8 @@ function renderPayday(){
     <p class="section-label">Payday details</p>
     <div class="card">
       <div class="field-row">
-        <div class="field"><label>Payday date</label><input type="date" value="${pv}" onchange="setSetting('paydayDate',this.value)"></div>
-        <div class="field"><label>Set aside ($)</label><input type="number" value="${sa||''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal" onchange="setSetting('setAside',parseFloat(this.value)||0)"></div>
+        <div class="field"><label>Payday date</label><input type="date" value="${pv}" onchange="setSetting('paydayDate',this.value); renderAll();"></div>
+        <div class="field"><label>Set aside ($)</label><input type="number" value="${sa||''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal" onchange="setSetting('setAside',parseFloat(this.value)||0); renderAll();"></div>
       </div>
     </div>`;
 
@@ -678,7 +802,7 @@ function renderPayday(){
   document.getElementById('panel-payday').innerHTML=inputCard+summaryHtml+odHtml+fundSection+paySection;
 }
 
-function setSetting(k,v){ settings[k]=v; saveSettingsDebounced(); renderPayday(); }
+function setSetting(k,v){ settings[k]=v; saveSettingsDebounced(); }
 
 async function tapPaid(billId, ds){
   const bill = bills.find(b => b.id === billId);
@@ -763,31 +887,7 @@ function renderFund(){
     }
   }));
 
-  // ─── ADVANCED 2-YEAR FORWARD CASH FLOW SIMULATION ───
-  let maxSimRate = 0;
-  let runningBillsSum = 0;
-  const simStart = dayjs(settings.paydayDate || tod());
-  
-  for (let k = 1; k <= 52; k++) {
-    const fnStart = simStart.add((k - 1) * 14, 'day');
-    const fnEnd = fnStart.add(13, 'day');
-    let fnBillsAmt = 0;
-    
-    fundBills.forEach(b => {
-      occurrencesInRange(b, fnStart, fnEnd).forEach(ds => {
-        const amtPaid = getAmtPaid(b, ds);
-        fnBillsAmt += Math.max(getExpectedAmount(b, ds) - amtPaid, 0);
-      });
-    });
-    
-    runningBillsSum += fnBillsAmt;
-    const requiredRate = (runningBillsSum + odAmt - balance) / k;
-    if (requiredRate > maxSimRate) {
-      maxSimRate = requiredRate;
-    }
-  }
-
-  const thisFn = maxSimRate;
+  const thisFn = calculateSafePace();
   const behind = thisFn > (steady + 0.01);
   const pillCls = !behind ? 'sp-g' : 'sp-r';
   const pillTxt = !behind ? '✓ On track' : '⚠ Catching up';
@@ -852,7 +952,7 @@ function buildTimeline(steady, currentPace){
   return rows.join('');
 }
 
-function setFund(k,v){ settings[k]=v; saveSettingsDebounced(); renderFund(); }
+function setFund(k,v){ settings[k]=v; saveSettingsDebounced(); renderAll(); }
 
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(console.error)); }
 </script>
