@@ -436,10 +436,17 @@ function calculateSafePace() {
   const fundBills = bills.filter(b => !b.fundExclude);
   if (!fundBills.length) return 0;
   
-  const balance = settings.balance || 0;
-  const simStart = dayjs(settings.paydayDate || tod());
-  const freq = settings.paydayFreq || 'fortnightly';
-  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52); // Exactly 2 years for consistent lookahead modeling
+  const balance   = settings.balance || 0;
+  const simStart  = dayjs(settings.paydayDate  || tod());
+  const balanceDj = dayjs(settings.balanceDate || tod());
+  const freq      = settings.paydayFreq || 'fortnightly';
+  // 3 years internally for accuracy (captures 3 rounds of annual bills)
+  const cyclesCount = freq === 'weekly' ? 156 : (freq === 'monthly' ? 36 : 78);
+
+  // If the balance was recorded on or after the payday date, the current cycle's
+  // contribution is already baked in.  The projection skips cycle 1's contribution,
+  // so the safePace formula must use (k-1) contributions for k cycles.
+  const balReadjust = balanceDj.isAfter(simStart) || balanceDj.isSame(simStart, 'day');
   
   let odAmt = 0;
   fundBills.forEach(b => {
@@ -462,12 +469,15 @@ function calculateSafePace() {
     });
     
     runningBillsSum += cycleBillsAmt;
-    const requiredRate = (runningBillsSum + odAmt - balance) / k;
+    // When balance already includes the cycle-1 contribution, only (k-1) more
+    // contributions will be made before cycle k ends — use that as the denominator.
+    const denom = balReadjust ? Math.max(k - 1, 1) : k;
+    const requiredRate = (runningBillsSum + odAmt - balance) / denom;
     if (requiredRate > maxSimRate) {
       maxSimRate = requiredRate;
     }
   }
-  return maxSimRate;
+  return Math.max(maxSimRate, 0);
 }
 
 // ─── OVERVIEW PANEL ───────────────────────────────────────
@@ -759,7 +769,12 @@ function renderBills(){
       <div class="metric"><div class="m-label">Fund / year</div><div class="m-value">$${Math.round(totalYr).toLocaleString()}</div></div>
     </div>`:''}
 
-    <p class="section-label">Your bills</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <p class="section-label" style="margin:0">Your bills</p>
+      <button onclick="showBillsExport()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:#f5f5f0;border:1px solid #e0e0d8;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;color:#555">
+        <i class="ti ti-file-text" style="font-size:14px" aria-hidden="true"></i> Export list
+      </button>
+    </div>
     <div class="sort-bar">
       <span class="sort-label">Sort by:</span>
       <button class="sort-btn ${activeSort === 'due' ? 'active' : ''}" onclick="changeBillsSort('due')">Next Due</button>
@@ -1129,7 +1144,7 @@ async function setActualAmt(billId, ds, baseAmt, inputEl, itemId) {
     if (!paidKeys.includes(k)) paidKeys = [...paidKeys, k];
     skippedKeys = skippedKeys.filter(x => x !== k);
   }
-  renderPayday();
+  renderAll();
   try { await savePaid(); } catch(e) { console.error('setActualAmt failed:', e); }
 }
 
@@ -1138,7 +1153,7 @@ async function savePartialFromAdjust(billId, ds, itemId) {
   if (!inputEl) return;
   const amount  = parseFloat(inputEl.value) || 0;
   const bill    = bills.find(b => b.id === billId);
-  const expAmt  = bill ? getExpectedAmount(b, ds) : 0;
+  const expAmt  = bill ? getExpectedAmount(bill, ds) : 0;  // fixed: was 'b' (out of scope)
   const k       = occKey(billId, ds);
   if (amount <= 0) {
     delete paidAmounts[k];
@@ -1150,7 +1165,7 @@ async function savePartialFromAdjust(billId, ds, itemId) {
     paidAmounts[k] = amount;
     paidKeys = paidKeys.filter(x => x !== k);
   }
-  renderPayday();
+  renderAll();
   try { await savePaid(); } catch(e) { console.error('savePartialFromAdjust failed:', e); }
 }
 
@@ -1164,7 +1179,7 @@ async function skipOccurrence(billId, ds, itemId) {
     ddOvrKeys   = ddOvrKeys.filter(x => x !== k);
     delete paidAmounts[k];
   }
-  renderPayday();
+  renderAll(); // skip changes safePace — all panels must update
   try { await savePaid(); } catch(e) { console.error(e); }
 }
 
@@ -1175,7 +1190,7 @@ async function clearAdjustments(billId, ds, itemId) {
   paidKeys    = paidKeys.filter(x => x !== k);
   ddOvrKeys   = ddOvrKeys.filter(x => x !== k);
   skippedKeys = skippedKeys.filter(x => x !== k);
-  renderPayday();
+  renderAll(); // adjustments affect amounts everywhere
   try { await savePaid(); } catch(e) { console.error(e); }
 }
 
@@ -1186,6 +1201,55 @@ function togglePayFromPay() {
   const opening = section.style.display === 'none';
   section.style.display = opening ? 'block' : 'none';
   if (icon) icon.className = opening ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
+}
+
+// showBillsExport: format the full bills list as plain text for sharing/testing
+function showBillsExport() {
+  if (!bills.length) { toast('No bills to export'); return; }
+  const todDj = dayjs(tod());
+  const pad   = (s, n) => String(s).padEnd(n).slice(0, n);
+  const header = `BILLS LIST — exported ${todDj.format('D MMM YYYY')}\n` +
+                 `${'─'.repeat(80)}\n` +
+                 `${pad('Name', 22)} ${pad('Freq', 11)} ${pad('Amount', 9)} ${pad('Next Due', 14)} DD  Fund\n` +
+                 `${'─'.repeat(80)}`;
+  const rows = [...bills]
+    .sort((a,b) => nextDueOnOrAfter(a,todDj).isBefore(nextDueOnOrAfter(b,todDj)) ? -1 : 1)
+    .map(b => {
+      const nxt  = nextDueOnOrAfter(b, todDj).format('D MMM YYYY');
+      const fnAmt= toFn(b.amount, b.freq);
+      return `${pad(b.name, 22)} ${pad(FREQ_LABELS[b.freq]||b.freq, 11)} ${pad('$'+b.amount.toFixed(2), 9)} ${pad(nxt, 14)} ${b.dd?'DD ':'No '} ${b.fundExclude?'Excl':'Fund'}`;
+    });
+  const fundBills = bills.filter(b=>!b.fundExclude);
+  const totFn  = fundBills.reduce((s,b)=>s+toFn(b.amount,b.freq),0);
+  const totYr  = fundBills.reduce((s,b)=>s+toYr(b.amount,b.freq),0);
+  const summary= `${'─'.repeat(80)}\n` +
+                 `Total fund bills: ${fundBills.length} of ${bills.length}   ` +
+                 `Per fortnight: $${totFn.toFixed(2)}   Per year: $${Math.round(totYr).toLocaleString()}\n` +
+                 `Current balance: $${(settings.balance||0).toFixed(2)}   ` +
+                 `As of: ${settings.balanceDate||'(not set)'}   ` +
+                 `Safe pace: $${(cachedSafePace||0).toFixed(2)}/cycle`;
+  const text = [header, ...rows, summary].join('\n');
+
+  const existing = document.getElementById('billsExportOverlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'export-overlay';
+  overlay.id = 'billsExportOverlay';
+  overlay.innerHTML = `
+    <div class="export-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <strong style="font-size:16px">📋 Bills list export</strong>
+        <button onclick="document.getElementById('billsExportOverlay').remove()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:22px;line-height:1">✕</button>
+      </div>
+      <textarea id="billsExportText" readonly
+        style="width:100%;font-family:monospace;font-size:11px;line-height:1.5;background:#f5f5f0;border:1px solid #e8e8e0;border-radius:10px;padding:12px;resize:none;color:#1a1a18;white-space:pre;"
+        rows="16">${text}</textarea>
+      <button class="btn-primary" style="margin-top:12px" onclick="navigator.clipboard.writeText(document.getElementById('billsExportText').value).then(()=>toast('Copied ✓'))">
+        <i class="ti ti-copy" aria-hidden="true"></i> Copy to clipboard
+      </button>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
 }
 
 function showExportMessage() {
