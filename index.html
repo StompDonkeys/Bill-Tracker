@@ -229,17 +229,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
 <script>
 // ─── CONSTANTS ────────────────────────────────────────────
-const FREQ_LABELS = {oneoff:'One-off',weekly:'Weekly',fortnightly:'Fortnightly',monthly:'Monthly',quarterly:'Quarterly',annual:'Annual'};
+const FREQ_LABELS = {oneoff:'One-off',weekly:'Weekly',fortnightly:'Fortnightly','6weekly':'6-Weekly',monthly:'Monthly',quarterly:'Quarterly',annual:'Annual'};
 const FREQ_COLORS = {
   oneoff:      {bg:'#f3f4f6',color:'#555'},
   weekly:      {bg:'#dcfce7',color:'#166534'}, fortnightly:{bg:'#d1fae5',color:'#065f46'},
+  '6weekly':   {bg:'#fce7f3',color:'#9d174d'},
   monthly:     {bg:'#dbeafe',color:'#1e40af'}, quarterly:  {bg:'#fef3c7',color:'#92400e'},
   annual:      {bg:'#ede9fe',color:'#5b21b6'}
 };
 const CAT_ICONS = {home:'🏠',utilities:'⚡',subscriptions:'📱',insurance:'🛡️',transport:'🚗',health:'❤️',other:'📋'};
 const CAT_BG    = {home:'#dcfce7',utilities:'#fef3c7',subscriptions:'#dbeafe',insurance:'#ede9fe',transport:'#d1fae5',health:'#fee2e2',other:'#f3f4f6'};
-const TO_FN = {oneoff:0,weekly:52/26,fortnightly:1,monthly:12/26,quarterly:4/26,annual:1/26};
-const TO_YR = {oneoff:0,weekly:52,fortnightly:26,monthly:12,quarterly:4,annual:1};
+// 6-weekly: 52/6 ≈ 8.667 occurrences/year ÷ 26 fortnights = 1/3 fortnightly equivalent
+const TO_FN = {oneoff:0,weekly:52/26,fortnightly:1,'6weekly':(52/6)/26,monthly:12/26,quarterly:4/26,annual:1/26};
+const TO_YR = {oneoff:0,weekly:52,fortnightly:26,'6weekly':52/6,monthly:12,quarterly:4,annual:1};
 
 // ─── STATE ────────────────────────────────────────────────
 let bills     = [];
@@ -253,16 +255,16 @@ let cachedSafePace = 0; // updated in renderAll, shared with renderPayday
 
 // ─── RECURRENCE ───────────────────────────────────────────
 function addCycle(d, freq) {
-  switch(freq){case'weekly':return d.add(1,'week');case'fortnightly':return d.add(2,'week');case'monthly':return d.add(1,'month');case'quarterly':return d.add(3,'month');case'annual':return d.add(1,'year');default:return d.add(2,'week');}
+  switch(freq){case'weekly':return d.add(1,'week');case'fortnightly':return d.add(2,'week');case'6weekly':return d.add(6,'week');case'monthly':return d.add(1,'month');case'quarterly':return d.add(3,'month');case'annual':return d.add(1,'year');default:return d.add(2,'week');}
 }
 function prevCycle(d, freq) {
-  switch(freq){case'weekly':return d.subtract(1,'week');case'fortnightly':return d.subtract(2,'week');case'monthly':return d.subtract(1,'month');case'quarterly':return d.subtract(3,'month');case'annual':return d.subtract(1,'year');default:return d.subtract(2,'week');}
+  switch(freq){case'weekly':return d.subtract(1,'week');case'fortnightly':return d.subtract(2,'week');case'6weekly':return d.subtract(6,'week');case'monthly':return d.subtract(1,'month');case'quarterly':return d.subtract(3,'month');case'annual':return d.subtract(1,'year');default:return d.subtract(2,'week');}
 }
 function nextDueOnOrAfter(bill, fromDj) {
   let d = dayjs(bill.date);
   if (bill.freq === 'oneoff') return d;
   if (!d.isBefore(fromDj)) return d;
-  const approx = {weekly:7,fortnightly:14,monthly:30.44,quarterly:91.31,annual:365.25}[bill.freq]||14;
+  const approx = {weekly:7,fortnightly:14,'6weekly':42,monthly:30.44,quarterly:91.31,annual:365.25}[bill.freq]||14;
   const skip = Math.max(0, Math.floor(fromDj.diff(d,'day')/approx) - 2);
   for(let i=0;i<skip;i++) d = addCycle(d,bill.freq);
   while(d.isBefore(fromDj)) d = addCycle(d,bill.freq);
@@ -702,6 +704,7 @@ function renderBills(){
             <option value="oneoff">One-off</option>
             <option value="weekly">Weekly</option>
             <option value="fortnightly" selected>Fortnightly</option>
+            <option value="6weekly">6-Weekly</option>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
             <option value="annual">Annual</option>
@@ -1168,7 +1171,154 @@ function copyExportText() {
     try { document.execCommand('copy'); toast('Copied ✓'); } catch(e) { toast('Select text above to copy'); }
   }
 }
-function renderFund(safePace){
+
+// ─── RECORD PAYDAY ────────────────────────────────────────
+
+// showRecordPayday: calculate balance impact and show a confirmation bottom sheet
+function showRecordPayday() {
+  const sp     = cachedSafePace || calculateSafePace();
+  const pv     = settings.paydayDate || tod();
+  const freq   = settings.paydayFreq || 'fortnightly';
+  const start  = dayjs(pv);
+  const dates  = getPayCycleDates(start, freq, 0);
+  const nextDj = getPayCycleDates(start, freq, 1).start;
+
+  const fundBills = bills.filter(b => !b.fundExclude);
+
+  // DD bills this cycle — handled from pay account, NO fund balance impact
+  let ddCycleAmt = 0;
+  fundBills.filter(b=>b.dd).forEach(b=>{
+    occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{
+      ddCycleAmt += getExpectedAmount(b,ds);
+    });
+  });
+
+  // Amount transferred into the bills fund account this payday
+  const billsFunded = Math.max(sp - ddCycleAmt, 0);
+
+  // Non-DD fund bills paid this cycle — came OUT of the bills fund account
+  let nonDDPaidAmt = 0;
+  const nonDDPaidList = [];
+  fundBills.filter(b=>!b.dd).forEach(b=>{
+    occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{
+      if(isPaidOcc(b.id,ds)){
+        const amt = getExpectedAmount(b,ds);
+        nonDDPaidAmt += amt;
+        nonDDPaidList.push({name:b.name, amount:amt});
+      }
+    });
+  });
+
+  const currentBalance = settings.balance || 0;
+  const newBalance     = Math.max(currentBalance + billsFunded - nonDDPaidAmt, 0);
+  const nextStr        = nextDj.format('YYYY-MM-DD');
+
+  const existing = document.getElementById('recordPaydayOverlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'export-overlay';
+  overlay.id = 'recordPaydayOverlay';
+  overlay.innerHTML = `
+    <div class="export-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <strong style="font-size:16px">📅 Record This Payday</strong>
+        <button onclick="document.getElementById('recordPaydayOverlay').remove()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:22px;line-height:1">✕</button>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:18px;padding:10px 14px;background:#f5f5f0;border-radius:10px">
+        <span>This payday: <strong>${start.format('D MMM YYYY')}</strong></span>
+        <span>Next payday: <strong>${nextDj.format('D MMM YYYY')}</strong></span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#dcfce7;border-radius:10px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#166534">+ Transferred into bills account</div>
+            <div style="font-size:11px;color:#166534;opacity:.8">Safe pace $${sp.toFixed(2)} minus DD buffer $${ddCycleAmt.toFixed(2)}</div>
+          </div>
+          <strong style="font-size:17px;color:#166534">+$${billsFunded.toFixed(2)}</strong>
+        </div>
+
+        ${nonDDPaidAmt > 0 ? `
+        <div style="background:#fef2f2;border-radius:10px;overflow:hidden">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#991b1b">- Non-DD bills paid from fund</div>
+              <div style="font-size:11px;color:#991b1b;opacity:.8">${nonDDPaidList.length} bill${nonDDPaidList.length>1?'s':''} paid this cycle</div>
+            </div>
+            <strong style="font-size:17px;color:#991b1b">-$${nonDDPaidAmt.toFixed(2)}</strong>
+          </div>
+          <div style="padding:0 14px 12px;display:flex;flex-direction:column;gap:4px">
+            ${nonDDPaidList.map(i=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:#991b1b;opacity:.85"><span>${esc(i.name)}</span><span>$${i.amount.toFixed(2)}</span></div>`).join('')}
+          </div>
+        </div>` : ''}
+
+        ${ddCycleAmt > 0 ? `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#eff6ff;border-radius:10px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#1d4ed8">ℹ Direct debits this cycle</div>
+            <div style="font-size:11px;color:#1d4ed8;opacity:.8">Handled from pay account — no fund balance impact</div>
+          </div>
+          <strong style="font-size:17px;color:#1d4ed8">$${ddCycleAmt.toFixed(2)}</strong>
+        </div>` : ''}
+
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px;background:#f5f5f0;border-radius:10px;border:2px solid #e8e8e0">
+          <div>
+            <div style="font-size:14px;font-weight:700">New fund balance</div>
+            <div style="font-size:11px;color:#888">Previous balance was $${currentBalance.toFixed(2)}</div>
+          </div>
+          <strong style="font-size:24px;color:#639922">$${newBalance.toFixed(2)}</strong>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('recordPaydayOverlay').remove()"
+          style="flex:1;height:48px;border:1px solid #e0e0d8;border-radius:12px;background:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;color:#555">
+          Cancel
+        </button>
+        <button onclick="confirmRecordPayday(${newBalance},'${nextStr}')" class="btn-primary" style="flex:2;margin-top:0">
+          <i class="ti ti-check" aria-hidden="true"></i> Confirm &amp; Record
+        </button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// confirmRecordPayday: apply balance update, advance payday date, clean up old paid state
+async function confirmRecordPayday(newBalance, nextPaydayStr) {
+  // Remove paid keys for dates more than 90 days old (prevents indefinite accumulation)
+  const cutoff = dayjs().subtract(90,'day').format('YYYY-MM-DD');
+  paidKeys  = paidKeys.filter(k  => k.slice(-10) > cutoff);
+  ddOvrKeys = ddOvrKeys.filter(k => k.slice(-10) > cutoff);
+  const cleanAmounts = {};
+  Object.entries(paidAmounts).forEach(([k,v]) => { if(k.slice(-10) > cutoff) cleanAmounts[k]=v; });
+  paidAmounts = cleanAmounts;
+
+  // Update balance, advance payday, stamp today as the new reconciliation date
+  settings.balance     = newBalance;
+  settings.balanceDate = tod();
+  settings.paydayDate  = nextPaydayStr;
+
+  document.getElementById('recordPaydayOverlay')?.remove();
+
+  try {
+    await Promise.all([
+      db.doc(`users/${uid}/meta/settings`).set(settings, {merge:true}),
+      savePaid()
+    ]);
+    toast('Payday recorded ✓');
+  } catch(e) {
+    console.error('confirmRecordPayday failed:', e);
+    toast('Save failed — please try again');
+  }
+
+  renderAll();
+}
+
+
   if (safePace === undefined) safePace = calculateSafePace();
   const balance=settings.balance||0, asOf=settings.balanceDate||tod();
   const asOfDj=dayjs(asOf);
@@ -1187,6 +1337,45 @@ function renderFund(safePace){
     document.getElementById('panel-fund').innerHTML=setupCard+`<div class="empty"><i class="ti ti-list" aria-hidden="true"></i>${bills.length?'All bills are set to paid from pay — nothing to fund':'Add bills in the My bills tab first'}</div>`;
     return;
   }
+
+  // ── Record Payday card calculations ──────────────────────
+  const rpFreq   = settings.paydayFreq || 'fortnightly';
+  const rpStart  = dayjs(settings.paydayDate || tod());
+  const rpDates  = getPayCycleDates(rpStart, rpFreq, 0);
+  const rpNext   = getPayCycleDates(rpStart, rpFreq, 1).start;
+
+  let rpDDAmt = 0;
+  fundBills.filter(b=>b.dd).forEach(b=>{
+    occurrencesInRange(b,rpDates.start,rpDates.end).forEach(ds=>{rpDDAmt+=getExpectedAmount(b,ds);});
+  });
+  const rpBillsFunded = Math.max(safePace - rpDDAmt, 0);
+
+  let rpNonDDPaid = 0;
+  fundBills.filter(b=>!b.dd).forEach(b=>{
+    occurrencesInRange(b,rpDates.start,rpDates.end).forEach(ds=>{
+      if(isPaidOcc(b.id,ds)) rpNonDDPaid += getExpectedAmount(b,ds);
+    });
+  });
+  const rpNewBalance = Math.max(balance + rpBillsFunded - rpNonDDPaid, 0);
+
+  const recordCard=`
+    <p class="section-label">Record this payday</p>
+    <div class="card" style="border:2px solid #639922;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-size:14px;font-weight:700">Record &amp; advance payday</div>
+          <div style="font-size:12px;color:#888;margin-top:2px">${rpStart.format('D MMM YYYY')} → ${rpNext.format('D MMM YYYY')}</div>
+        </div>
+        <button onclick="showRecordPayday()" style="height:38px;padding:0 16px;background:#639922;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0;margin-left:12px">
+          <i class="ti ti-player-record" aria-hidden="true"></i> Record
+        </button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;border-top:1px solid #e8e8e0;padding-top:12px">
+        <div style="display:flex;justify-content:space-between"><span style="color:#888">Transfer into bills account:</span><strong style="color:#639922">+$${rpBillsFunded.toFixed(2)}</strong></div>
+        <div style="display:flex;justify-content:space-between"><span style="color:#888">Non-DD bills paid from fund:</span><strong style="color:#991b1b">-$${rpNonDDPaid.toFixed(2)}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding-top:7px;border-top:1px solid #e8e8e0"><span style="color:#555;font-weight:600">Projected new balance:</span><strong style="color:#1a1a18;font-size:15px">$${rpNewBalance.toFixed(2)}</strong></div>
+      </div>
+    </div>`;
 
   const steady  =fundBills.reduce((s,b)=>s+toFn(b.amount,b.freq),0);
   const totalLib=fundBills.reduce((s,b)=>s+currentLiab(b,asOfDj),0);
@@ -1211,6 +1400,7 @@ function renderFund(safePace){
 
   document.getElementById('panel-fund').innerHTML=`
     ${setupCard}
+    ${recordCard}
     <div class="hero">
       <div class="hero-label">Contribute each pay cycle</div>
       <div class="hero-amount">$${thisFn.toFixed(2)}</div>
