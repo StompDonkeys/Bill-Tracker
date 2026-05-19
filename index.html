@@ -165,7 +165,7 @@
     .text-r { color: #ef4444; }
 
     table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 480px; }
-    th { color: #666; font-weight: 700; border-bottom: 2px solid #e8e8e0; }
+    th { color: #666; font-weight: 700; border-bottom: 2px solid #e8e8e0; th: padding: 8px 4px; }
     tr { border-bottom: 1px solid #f0f0e8; }
     .btn-export { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:#1e40af; color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; transition:background 0.15s; }
     .btn-export:hover { background:#1d3a9f; }
@@ -325,7 +325,7 @@ function isSkipped(id, ds)    { return skippedKeys.includes(occKey(id, ds)); }
 function isPaidOcc(id, ds) {
   if (isSkipped(id, ds)) return true;
   const bill = bills.find(b => b.id === id);
-  if (!bill) return false;
+  if (!b || !bill) return false;
   if (bill.dd) {
     if (ddOvrKeys.includes(occKey(id, ds))) return false;
     return true;
@@ -616,6 +616,7 @@ function renderProjection(safePace) {
   if (safePace === undefined) safePace = calculateSafePace();
   const simStart = dayjs(settings.paydayDate || tod());
   const freq = settings.paydayFreq || 'fortnightly';
+  const balanceDate = dayjs(settings.balanceDate || tod());
   let currentSimBalance = settings.balance || 0;
   
   const fundBills = bills.filter(b => !b.fundExclude);
@@ -632,7 +633,7 @@ function renderProjection(safePace) {
   let html = `
     <p class="section-label">Lookahead (2 Years)</p>
     <div class="banner banner-blue" style="margin-bottom: 12px;">
-      <i class="ti ti-info-circle"></i> 2-year forward model (${cyclesCount} periods) matching the internal funding trajectory optimization metrics.
+      <i class="ti ti-info-circle"></i> 2-year forward cash flow mapping model based on your manual updates to the Bills fund balance page.
     </div>
     <div class="card" style="padding: 12px; overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 480px;">
@@ -661,14 +662,20 @@ function renderProjection(safePace) {
     if (k === 1) cycleBillsTotal += odAmt;
 
     const openingBalance = currentSimBalance;
-    const balanceAfterContribution = openingBalance + safePace;
+    
+    // Core structural check: if balance was verified on or after this cycle's date, 
+    // we assume your manual statement update already encapsulates that day's contribution transfer.
+    const isBalanceAlreadyUpdated = k === 1 && (balanceDate.isAfter(dates.start) || balanceDate.isSame(dates.start, 'day'));
+    const appliedContribution = isBalanceAlreadyUpdated ? 0 : safePace;
+
+    const balanceAfterContribution = openingBalance + appliedContribution;
     const finalBalance = balanceAfterContribution - cycleBillsTotal;
     currentSimBalance = finalBalance;
 
     html += `
       <tr style="border-bottom: 1px solid #f0f0e8; ${finalBalance < -0.01 ? 'background: #fef2f2;' : ''}">
         <td style="padding: 10px 4px; font-weight: 600; color: #333;">${dates.start.format('D MMM YYYY')}</td>
-        <td style="padding: 10px 4px; text-align: right; color: #065f46; font-weight: 600;">$${safePace.toFixed(2)}</td>
+        <td style="padding: 10px 4px; text-align: right; color: #065f46; font-weight: 600;">$${appliedContribution.toFixed(2)}</td>
         <td style="padding: 10px 4px; text-align: right; color: #666;">$${balanceAfterContribution.toFixed(2)}</td>
         <td style="padding: 10px 4px; text-align: right; color: #991b1b;">$${cycleBillsTotal.toFixed(2)}</td>
         <td style="padding: 10px 4px; text-align: right; font-weight: 700; color: ${finalBalance < 0 ? '#ef4444' : '#166534'}">$${finalBalance.toFixed(2)}</td>
@@ -699,18 +706,10 @@ function renderBills(){
   const todDj=dayjs(tod());
   const activeSort = settings.billsSortBy || 'due';
 
-  // Perform custom client-side sorting based on context metrics parameters
   const sorted = [...bills].sort((a, b) => {
-    if (activeSort === 'category') {
-      return (a.cat || '').localeCompare(b.cat || '');
-    }
-    if (activeSort === 'amount') {
-      return b.amount - a.amount; // Descending order for visual clarity on larger impacts
-    }
-    if (activeSort === 'frequency') {
-      return (a.freq || '').localeCompare(b.freq || '');
-    }
-    // Default fallback parameter: next due date sorting bounds
+    if (activeSort === 'category') return (a.cat || '').localeCompare(b.cat || '');
+    if (activeSort === 'amount') return b.amount - a.amount;
+    if (activeSort === 'frequency') return (a.freq || '').localeCompare(b.freq || '');
     const nextA = nextDueOnOrAfter(a, todDj);
     const nextB = nextDueOnOrAfter(b, todDj);
     return nextA.isBefore(nextB) ? -1 : (nextA.isAfter(nextB) ? 1 : 0);
@@ -763,7 +762,6 @@ function renderBills(){
     </div>`:''}
 
     <p class="section-label">Your bills</p>
-    
     <div class="sort-bar">
       <span class="sort-label">Sort by:</span>
       <button class="sort-btn ${activeSort === 'due' ? 'active' : ''}" onclick="changeBillsSort('due')">Next Due</button>
@@ -1071,161 +1069,220 @@ function renderPayday(){
   document.getElementById('panel-payday').innerHTML=summaryHtml+odHtml+fundSection+paySection;
 }
 
-function showRecordPayday() {
-  const sp     = cachedSafePace || calculateSafePace();
-  const pv     = settings.paydayDate || tod();
-  const freq   = settings.paydayFreq || 'fortnightly';
-  const start  = dayjs(pv);
-  const dates  = getPayCycleDates(start, freq, 0);
-  const nextDj = getPayCycleDates(start, freq, 1).start;
+async function tapPaid(billId, ds) {
+  const k = occKey(billId, ds);
+  const bill = bills.find(b => b.id === billId);
+  if (!bill) return;
 
-  const fundBills = bills.filter(b => !b.fundExclude);
+  if (bill.dd) {
+    ddOvrKeys = ddOvrKeys.includes(k) ? ddOvrKeys.filter(x => x !== k) : [...ddOvrKeys, k];
+  } else {
+    paidKeys = paidKeys.includes(k) ? paidKeys.filter(x => x !== k) : [...paidKeys, k];
+  }
+  renderPayday();
+  try { await savePaid(); } catch(e) { console.error('savePaid failed:', e); }
+}
 
-  let ddCycleAmt = 0;
-  const ddCycleList = [];
-  fundBills.filter(b=>b.dd).forEach(b=>{
-    occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{
-      if(!isSkipped(b.id,ds)){
-        const amt = getExpectedAmount(b,ds);
-        ddCycleAmt += amt;
-        ddCycleList.push({name:b.name, amount:amt, due:dayjs(ds).format('D MMM')});
+function showBillAdjust(billId, ds, baseAmt, itemId) {
+  const itemEl = document.getElementById(itemId);
+  if (!itemEl) return;
+  const existing = itemEl.querySelector('.fn-partial');
+  if (existing) { existing.remove(); return; }
+
+  const bill          = bills.find(b => b.id === billId);
+  const currentActual = bill ? getExpectedAmount(bill, ds) : baseAmt;
+  const alreadySkipped= isSkipped(billId, ds);
+  const k             = occKey(billId, ds);
+  const currentPaid   = bill ? getAmtPaid(bill, ds) : 0;
+
+  const div = document.createElement('div');
+  div.className = 'fn-partial';
+  div.style.cssText = 'flex-direction:column;gap:8px';
+  div.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.05em;flex:0 0 100%">Adjust this occurrence</div>
+    <div style="display:flex;align-items:center;gap:8px;flex:0 0 100%">
+      <label style="font-size:12px;color:#888;flex-shrink:0">Actual amount ($)</label>
+      <input type="number" min="0" step="0.01" inputmode="decimal"
+             value="${currentActual !== baseAmt ? currentActual.toFixed(2) : ''}"
+             placeholder="${baseAmt.toFixed(2)}"
+             style="flex:1;min-width:0;height:36px;border:1px solid #e0e0d8;border-radius:8px;padding:0 10px;font-size:14px;background:#fafaf8;font-family:inherit;outline:none"
+             onkeydown="if(event.key==='Enter')setActualAmt('${billId}','${ds}',${baseAmt},this,'${itemId}')">
+      <button class="p-save" onclick="setActualAmt('${billId}','${ds}',${baseAmt},this.previousElementSibling,'${itemId}')">Set &amp; Pay</button>
+    </div>
+    ${!alreadySkipped && currentPaid > 0 && currentPaid < currentActual ? `
+    <div style="display:flex;align-items:center;gap:8px;flex:0 0 100%">
+      <label style="font-size:12px;color:#888;flex-shrink:0">Amount paid ($)</label>
+      <input type="number" min="0" step="0.01" inputmode="decimal"
+             value="${currentPaid.toFixed(2)}" placeholder="0.00"
+             style="flex:1;min-width:0;height:36px;border:1px solid #e0e0d8;border-radius:8px;padding:0 10px;font-size:14px;background:#fafaf8;font-family:inherit;outline:none"
+             id="partialInput-${k}"
+             onkeydown="if(event.key==='Enter')savePartialFromAdjust('${billId}','${ds}','${itemId}')">
+      <button class="p-save" onclick="savePartialFromAdjust('${billId}','${ds}','${itemId}')">Save partial</button>
+    </div>` : ''}
+    <div style="display:flex;gap:8px;flex:0 0 100%">
+      <button onclick="skipOccurrence('${billId}','${ds}','${itemId}')"
+        style="flex:1;height:34px;border:1px solid ${alreadySkipped?'#639922':'#e0e0d8'};border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:${alreadySkipped?'#639922':'#fafaf8'};color:${alreadySkipped?'#fff':'#555'}">
+        ${alreadySkipped?'✓ Skipped — tap to restore':'⊘ Skip this occurrence'}
+      </button>
+      <button class="p-clear" onclick="clearAdjustments('${billId}','${ds}','${itemId}')">Reset</button>
+    </div>`;
+  itemEl.appendChild(div);
+  div.querySelector('input').focus();
+  div.querySelector('input').select();
+}
+
+async function setActualAmt(billId, ds, baseAmt, inputEl, itemId) {
+  const rawVal = parseFloat(inputEl.value);
+  const amount = isNaN(rawVal) ? baseAmt : rawVal;
+  const k = occKey(billId, ds);
+  if (amount <= 0) {
+    delete historyAmounts[k];
+    delete paidAmounts[k];
+    paidKeys = paidKeys.filter(x => x !== k);
+  } else {
+    historyAmounts[k] = amount;
+    delete paidAmounts[k];
+    if (!paidKeys.includes(k)) paidKeys = [...paidKeys, k];
+    skippedKeys = skippedKeys.filter(x => x !== k);
+  }
+  renderPayday();
+  try { await savePaid(); } catch(e) { console.error('setActualAmt failed:', e); }
+}
+
+async function savePartialFromAdjust(billId, ds, itemId) {
+  const inputEl = document.getElementById(`partialInput-${occKey(billId,ds)}`);
+  if (!inputEl) return;
+  const amount  = parseFloat(inputEl.value) || 0;
+  const bill    = bills.find(b => b.id === billId);
+  const expAmt  = bill ? getExpectedAmount(b, ds) : 0;
+  const k       = occKey(billId, ds);
+  if (amount <= 0) {
+    delete paidAmounts[k];
+    paidKeys = paidKeys.filter(x => x !== k);
+  } else if (amount >= expAmt) {
+    delete paidAmounts[k];
+    if (!paidKeys.includes(k)) paidKeys = [...paidKeys, k];
+  } else {
+    paidAmounts[k] = amount;
+    paidKeys = paidKeys.filter(x => x !== k);
+  }
+  renderPayday();
+  try { await savePaid(); } catch(e) { console.error('savePartialFromAdjust failed:', e); }
+}
+
+async function skipOccurrence(billId, ds, itemId) {
+  const k = occKey(billId, ds);
+  if (skippedKeys.includes(k)) {
+    skippedKeys = skippedKeys.filter(x => x !== k);
+  } else {
+    skippedKeys = [...skippedKeys, k];
+    paidKeys    = paidKeys.filter(x => x !== k);
+    ddOvrKeys   = ddOvrKeys.filter(x => x !== k);
+    delete paidAmounts[k];
+  }
+  renderPayday();
+  try { await savePaid(); } catch(e) { console.error(e); }
+}
+
+async function clearAdjustments(billId, ds, itemId) {
+  const k = occKey(billId, ds);
+  delete historyAmounts[k];
+  delete paidAmounts[k];
+  paidKeys    = paidKeys.filter(x => x !== k);
+  ddOvrKeys   = ddOvrKeys.filter(x => x !== k);
+  skippedKeys = skippedKeys.filter(x => x !== k);
+  renderPayday();
+  try { await savePaid(); } catch(e) { console.error(e); }
+}
+
+function togglePayFromPay() {
+  const section = document.getElementById('payFromPayExpand');
+  const icon    = document.getElementById('payFromPayIcon');
+  if (!section) return;
+  const opening = section.style.display === 'none';
+  section.style.display = opening ? 'block' : 'none';
+  if (icon) icon.className = opening ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
+}
+
+function showExportMessage() {
+  const pay  = settings.paydayPay || 0;
+  const pv   = settings.paydayDate || tod();
+  const freq = settings.paydayFreq || 'fortnightly';
+  const sp   = cachedSafePace || calculateSafePace();
+  const start= dayjs(pv);
+  const dates= getPayCycleDates(start, freq, 0);
+
+  let fromPayAmt = 0, ddAmt = 0;
+  const ddItems = [];
+  bills.forEach(b => {
+    occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
+      if (isSkipped(b.id, ds)) return;
+      const expAmt = getExpectedAmount(b, ds);
+      if (b.fundExclude) {
+        fromPayAmt += expAmt;
+      } else if (b.dd) {
+        ddAmt += expAmt;
+        ddItems.push({name: b.name, amount: expAmt, due: dayjs(ds).format('ddd D MMM')});
       }
     });
   });
-  const billsFunded = Math.max(sp - ddCycleAmt, 0);
+  ddItems.sort((a,b) => a.due.localeCompare(b.due));
 
-  let rpNonDDPaid = 0;
-  const nonDDPaidList = [];
-  fundBills.filter(b=>!b.dd).forEach(b=>{
-    occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{
-      if(!isSkipped(b.id,ds) && isPaidOcc(b.id,ds)){
-        const amt = getExpectedAmount(b,ds);
-        rpNonDDPaid += amt;
-        nonDDPaidList.push({name:b.name, amount:amt});
-      }
-    });
-  });
+  const transferAmt   = Math.max(sp - ddAmt, 0);
+  const discretionary = pay - fromPayAmt - sp;
+  const lines = [];
+  if (fromPayAmt > 0) lines.push(`  • $${fromPayAmt.toFixed(2)} for your regular payday bills.`);
+  if (ddItems.length > 0) {
+    lines.push(`  • Keep in your pay account for direct debits ($${ddAmt.toFixed(2)} total):`);
+    ddItems.forEach(d => lines.push(`      - ${d.name}: $${d.amount.toFixed(2)} (due ${d.due})`));
+  }
+  lines.push(`  • $${transferAmt.toFixed(2)} is transferred to your bills fund account.`);
 
-  const skippedCount = fundBills.reduce((c,b)=>
-    c + occurrencesInRange(b,dates.start,dates.end).filter(ds=>isSkipped(b.id,ds)).length, 0);
+  const msg =
+`This pay you will receive $${pay.toFixed(2)}.
+From this you will pay:
 
-  const nextStr = nextDj.format('YYYY-MM-DD');
+${lines.join('\n')}
 
-  const existing = document.getElementById('recordPaydayOverlay');
+This leaves you with $${Math.max(discretionary, 0).toFixed(2)} for discretionary spending.`;
+
+  const existing = document.getElementById('exportOverlay');
   if (existing) existing.remove();
 
   const overlay = document.createElement('div');
   overlay.className = 'export-overlay';
-  overlay.id = 'recordPaydayOverlay';
+  overlay.id = 'exportOverlay';
   overlay.innerHTML = `
     <div class="export-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-        <strong style="font-size:16px">📅 Record This Payday</strong>
-        <button onclick="document.getElementById('recordPaydayOverlay').remove()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:22px;line-height:1">✕</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <strong style="font-size:16px">📋 Payday instructions</strong>
+        <button onclick="document.getElementById('exportOverlay').remove()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:22px;line-height:1">✕</button>
       </div>
-
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:16px;padding:10px 14px;background:#f5f5f0;border-radius:10px">
-        <span>This payday: <strong>${start.format('D MMM YYYY')}</strong></span>
-        <span>Next payday: <strong>${nextDj.format('D MMM YYYY')}</strong></span>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-        <div style="padding:12px 14px;background:#dcfce7;border-radius:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-size:13px;font-weight:700;color:#166534">Transfer to bills account</div>
-            <strong style="font-size:17px;color:#166534">$${billsFunded.toFixed(2)}</strong>
-          </div>
-          <div style="font-size:11px;color:#166534;opacity:.8;margin-top:3px">Safe pace $${sp.toFixed(2)} minus DD buffer $${ddCycleAmt.toFixed(2)}</div>
-        </div>
-
-        ${ddCycleAmt > 0 ? `
-        <div style="background:#eff6ff;border-radius:10px;overflow:hidden">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px">
-            <div style="font-size:13px;font-weight:700;color:#1d4ed8">Direct debits this cycle</div>
-            <strong style="font-size:17px;color:#1d4ed8">$${ddCycleAmt.toFixed(2)}</strong>
-          </div>
-          <div style="padding:0 14px 10px;display:flex;flex-direction:column;gap:4px">
-            ${ddCycleList.map(d=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:#1d4ed8;opacity:.85"><span>${d.name} · due ${d.due}</span><span>$${d.amount.toFixed(2)}</span></div>`).join('')}
-          </div>
-        </div>` : ''}
-
-        ${rpNonDDPaid > 0 ? `
-        <div style="background:#fef2f2;border-radius:10px;overflow:hidden">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px">
-            <div style="font-size:13px;font-weight:700;color:#991b1b">Paid from bills account</div>
-            <strong style="font-size:17px;color:#991b1b">$${rpNonDDPaid.toFixed(2)}</strong>
-          </div>
-          <div style="padding:0 14px 10px;display:flex;flex-direction:column;gap:4px">
-            ${nonDDPaidList.map(i=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:#991b1b;opacity:.85"><span>${i.name}</span><span>$${i.amount.toFixed(2)}</span></div>`).join('')}
-          </div>
-        </div>` : ''}
-
-        ${skippedCount > 0 ? `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f3f4f6;border-radius:10px">
-          <div style="font-size:13px;color:#555">${skippedCount} bill${skippedCount>1?'s':''} skipped — not charged this cycle</div>
-        </div>` : ''}
-
-        <div style="padding:12px 14px;background:#fffbeb;border-radius:10px;border:1px solid #fde68a">
-          <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">⚠ Remember to update your balance</div>
-          <div style="font-size:12px;color:#92400e;line-height:1.5">After transferring $${billsFunded.toFixed(2)} to your bills account, check your actual balance in your banking app and update it in the Account setup section. The balance you enter should already include the transfer.</div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:10px">
-        <button onclick="document.getElementById('recordPaydayOverlay').remove()"
-          style="flex:1;height:48px;border:1px solid #e0e0d8;border-radius:12px;background:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;color:#555">
-          Cancel
-        </button>
-        <button onclick="confirmRecordPayday('${nextStr}')" class="btn-primary" style="flex:2;margin-top:0">
-          <i class="ti ti-check" aria-hidden="true"></i> Confirm &amp; Record
-        </button>
-      </div>
+      <textarea class="export-text" readonly rows="13" id="exportText">${msg}</textarea>
+      <button class="btn-primary" style="margin-top:12px" onclick="copyExportText()">
+        <i class="ti ti-copy" aria-hidden="true"></i> Copy to clipboard
+      </button>
     </div>`;
-  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
 }
 
-async function confirmRecordPayday(nextPaydayStr) {
-  settings.previousPaydayDate = settings.paydayDate;
-  settings.paydayDate = nextPaydayStr;
-
-  const cutoff = dayjs().subtract(90,'day').format('YYYY-MM-DD');
-  paidKeys    = paidKeys.filter(k  => k.slice(-10) > cutoff);
-  ddOvrKeys   = ddOvrKeys.filter(k => k.slice(-10) > cutoff);
-  skippedKeys = skippedKeys.filter(k=> k.slice(-10) > cutoff);
-  const cleanAmounts = {};
-  Object.entries(paidAmounts).forEach(([k,v]) => { if(k.slice(-10) > cutoff) cleanAmounts[k]=v; });
-  paidAmounts = cleanAmounts;
-  const cleanHistory = {};
-  Object.entries(historyAmounts).forEach(([k,v]) => { if(k.slice(-10) > cutoff) cleanHistory[k]=v; });
-  historyAmounts = cleanHistory;
-
-  document.getElementById('recordPaydayOverlay')?.remove();
-
-  try {
-    await Promise.all([
-      db.doc(`users/${uid}/meta/settings`).set(settings, {merge:true}),
-      savePaid()
-    ]);
-    toast('Payday recorded ✓');
-  } catch(e) {
-    console.error('confirmRecordPayday failed:', e);
-    toast('Save failed — please try again');
+function copyExportText() {
+  const text = document.getElementById('exportText')?.value;
+  if (!text) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(()=>toast('Copied ✓')).catch(()=>legacyCopy());
+  } else {
+    legacyCopy();
   }
-  renderAll();
+  function legacyCopy() {
+    const ta = document.getElementById('exportText');
+    ta.select(); ta.setSelectionRange(0, 99999);
+    try { document.execCommand('copy'); toast('Copied ✓'); } catch(e) { toast('Select text'); }
+  }
 }
 
-async function undoRecordPayday() {
-  if (!settings.previousPaydayDate) return;
-  settings.paydayDate         = settings.previousPaydayDate;
-  settings.previousPaydayDate = null;
-  try {
-    await db.doc(`users/${uid}/meta/settings`).set(settings, {merge:true});
-    toast('Payday record undone ✓');
-  } catch(e) { toast('Undo failed — please try again'); }
-  renderAll();
-}
-
+// ─── FUND PANEL ───────────────────────────────────────────
 function renderFund(safePace){
   if (safePace === undefined) safePace = calculateSafePace();
   const balance=settings.balance||0, asOf=settings.balanceDate||tod();
@@ -1249,7 +1306,6 @@ function renderFund(safePace){
   const rpFreq   = settings.paydayFreq || 'fortnightly';
   const rpStart  = dayjs(settings.paydayDate || tod());
   const rpDates  = getPayCycleDates(rpStart, rpFreq, 0);
-  const rpNext   = getPayCycleDates(rpStart, rpFreq, 1).start;
 
   let rpDDAmt = 0;
   fundBills.filter(b=>b.dd).forEach(b=>{
@@ -1259,51 +1315,17 @@ function renderFund(safePace){
   });
   const rpBillsFunded = Math.max(safePace - rpDDAmt, 0);
 
-  let rpNonDDPaid = 0;
-  fundBills.filter(b=>!b.dd).forEach(b=>{
-    occurrencesInRange(b,rpDates.start,rpDates.end).forEach(ds=>{
-      if(!isSkipped(b.id,ds) && isPaidOcc(b.id,ds)) rpNonDDPaid += getExpectedAmount(b,ds);
-    });
-  });
-
-  const recordCard=`
-    <p class="section-label">Record this payday</p>
-    <div class="card" style="border:2px solid #639922;margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-        <div>
-          <div style="font-size:14px;font-weight:700">Record &amp; advance payday</div>
-          <div style="font-size:12px;color:#888;margin-top:2px">${rpStart.format('D MMM YYYY')} → ${rpNext.format('D MMM YYYY')}</div>
-        </div>
-        <button onclick="showRecordPayday()" style="height:38px;padding:0 16px;background:#639922;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0;margin-left:12px">
-          <i class="ti ti-player-record" aria-hidden="true"></i> Record
-        </button>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;border-top:1px solid #e8e8e0;padding-top:12px">
-        <div style="display:flex;justify-content:space-between"><span style="color:#888">Transfer to bills account this payday:</span><strong style="color:#639922">$${rpBillsFunded.toFixed(2)}</strong></div>
-        <div style="display:flex;justify-content:space-between"><span style="color:#888">Non-DD bills paid from fund:</span><strong style="color:#991b1b">$${rpNonDDPaid.toFixed(2)}</strong></div>
-        <div style="font-size:11px;color:#92400e;background:#fffbeb;border-radius:6px;padding:6px 8px;margin-top:2px;line-height:1.4">
-          After transferring, check your banking app and update the balance below — it already includes the transfer.
-        </div>
-      </div>
-    </div>
-    ${settings.previousPaydayDate ? `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fef3c7;border-radius:10px;margin-bottom:12px;border:1px solid #fde68a">
-      <span style="font-size:13px;color:#92400e">Recorded in error? Previous payday was <strong>${dayjs(settings.previousPaydayDate).format('D MMM YYYY')}</strong></span>
-      <button onclick="undoRecordPayday()" style="height:32px;padding:0 12px;background:#92400e;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0;margin-left:10px">Undo</button>
-    </div>` : ''}`;
-
   const steady  =fundBills.reduce((s,b)=>s+toFn(b.amount,b.freq),0);
   const totalLib=fundBills.reduce((s,b)=>s+currentLiab(b,asOfDj),0);
 
   const simStart = dayjs(settings.paydayDate || tod());
-  let odAmt = 0; const odList=[];
+  let odAmt = 0;
   fundBills.forEach(b=> {
     getOverdueOccurrences(b, simStart).forEach(ds => {
       const amtPaid = getAmtPaid(b, ds);
       const expAmt = getExpectedAmount(b, ds);
       if(amtPaid < expAmt){
         odAmt += (expAmt - amtPaid);
-        odList.push({bill:b,ds});
       }
     });
   });
@@ -1315,7 +1337,6 @@ function renderFund(safePace){
 
   document.getElementById('panel-fund').innerHTML=`
     ${setupCard}
-    ${recordCard}
     <div class="hero">
       <div class="hero-label">Total bills fund commitment per cycle</div>
       <div class="hero-amount">$${thisFn.toFixed(2)}</div>
@@ -1324,7 +1345,6 @@ function renderFund(safePace){
           ? `Transfer <strong style="color:#fff">$${rpBillsFunded.toFixed(2)}</strong> to bills account · Keep <strong style="color:#fff">$${rpDDAmt.toFixed(2)}</strong> in pay account for DDs`
           : `Transfer <strong style="color:#fff">$${rpBillsFunded.toFixed(2)}</strong> to your bills account`}
       </div>
-      ${behind ? `<div style="margin-top:8px;font-size:11px;opacity:.75">Pace optimized to absorb an upcoming clump or shortfall.</div>` : ''}
     </div>
     <div class="grid2">
       <div class="metric"><div class="m-label">Simulated pace</div><div class="m-value">$${thisFn.toFixed(2)}<span style="font-size:13px;font-weight:400;color:#888">/fn</span></div><div class="m-sub">Ensures balance ≥ $0</div></div>
