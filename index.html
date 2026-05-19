@@ -451,8 +451,9 @@ function calculateSafePace() {
     
     fundBills.forEach(b => {
       occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
-        const amtPaid = getAmtPaid(b, ds);
-        cycleBillsAmt += Math.max(getExpectedAmount(b, ds) - amtPaid, 0);
+        // Always use full expected amount — the safePace must be stable and not fluctuate
+        // based on which bills happen to be checked off in the current cycle
+        cycleBillsAmt += getExpectedAmount(b, ds);
       });
     });
     
@@ -652,8 +653,9 @@ function renderProjection(safePace) {
     
     fundBills.forEach(b => {
       occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
-        const amtPaid = getAmtPaid(b, ds);
-        cycleBillsTotal += Math.max(getExpectedAmount(b, ds) - amtPaid, 0);
+        // Full face value always — the Lookahead is a forecast, not a current-cycle tracker.
+        // Payment state is irrelevant here; every cycle assumes bills are paid in full.
+        cycleBillsTotal += getExpectedAmount(b, ds);
       });
     });
 
