@@ -436,7 +436,7 @@ function calculateSafePace() {
   const balance = settings.balance || 0;
   const simStart = dayjs(settings.paydayDate || tod());
   const freq = settings.paydayFreq || 'fortnightly';
-  const cyclesCount = freq === 'weekly' ? 156 : (freq === 'monthly' ? 36 : 78);
+  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52);
   
   let odAmt = 0;
   fundBills.forEach(b => {
