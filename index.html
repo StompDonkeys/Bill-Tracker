@@ -1319,6 +1319,7 @@ async function confirmRecordPayday(newBalance, nextPaydayStr) {
 }
 
 
+function renderFund(safePace){
   if (safePace === undefined) safePace = calculateSafePace();
   const balance=settings.balance||0, asOf=settings.balanceDate||tod();
   const asOfDj=dayjs(asOf);
