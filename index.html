@@ -167,6 +167,15 @@
     table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 480px; }
     th { color: #666; font-weight: 700; border-bottom: 2px solid #e8e8e0; }
     tr { border-bottom: 1px solid #f0f0e8; }
+    .btn-export { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:#1e40af; color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; transition:background 0.15s; }
+    .btn-export:hover { background:#1d3a9f; }
+    .export-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:500; display:flex; align-items:flex-end; justify-content:center; }
+    .export-card { background:#fff; border-radius:20px 20px 0 0; padding:24px 20px 32px; width:100%; max-width:600px; max-height:85vh; overflow-y:auto; }
+    .export-text { width:100%; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; font-size:14px; line-height:1.7; background:#f5f5f0; border:1px solid #e8e8e0; border-radius:10px; padding:14px; resize:none; color:#1a1a18; }
+    .pay-expand-row { display:flex; flex-direction:column; gap:5px; margin:6px 0 4px; padding:10px 12px; background:#fef2f2; border-radius:8px; }
+    .pay-expand-item { display:flex; justify-content:space-between; font-size:13px; color:#555; }
+    .btn-caret { background:none; border:none; cursor:pointer; color:#aaa; padding:2px 4px; line-height:1; }
+    .btn-caret:hover { color:#555; }
   </style>
 </head>
 <body>
@@ -240,6 +249,7 @@ let paidAmounts = {};
 let historyAmounts = {};
 let settings  = {balance:0, balanceDate:tod(), paydayDate:tod(), paydayPay:0, paydayFreq:'fortnightly'};
 let uid = null, db = null, saveTimer = null, editingId = null;
+let cachedSafePace = 0; // updated in renderAll, shared with renderPayday
 
 // ─── RECURRENCE ───────────────────────────────────────────
 function addCycle(d, freq) {
@@ -395,6 +405,7 @@ function switchTab(tab){
 }
 function renderAll(){
   const safePace = calculateSafePace(); // compute once, pass to all panels that need it
+  cachedSafePace = safePace;
   renderOverview(safePace);
   renderProjection(safePace);
   renderBills();
@@ -464,11 +475,15 @@ function renderOverview(safePace) {
   
   let directFromPayAmt = 0;
   let autoPaidDDAmt = 0;
+  const payFromPayItems = []; // individual fundExclude bills for the expandable breakdown
   
   bills.forEach(b => {
     occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
       const expAmt = getExpectedAmount(b, ds);
-      if (b.fundExclude) directFromPayAmt += expAmt;
+      if (b.fundExclude) {
+        directFromPayAmt += expAmt;
+        payFromPayItems.push({name: b.name, amount: expAmt, due: dayjs(ds).format('D MMM')});
+      }
       if (b.dd) autoPaidDDAmt += expAmt;
     });
   });
@@ -476,102 +491,100 @@ function renderOverview(safePace) {
   const disposable = pay - safePace - directFromPayAmt;
   const isNegative = disposable < 0;
 
-  // Calculate Large Upcoming Bills (> $500) within 6 weeks
+  // Large upcoming bills (>$500) within 6 weeks
   const todayDj = dayjs(tod());
   const sixWeeksLaterDj = todayDj.add(6, 'week');
   const largeBills = [];
-
   bills.forEach(b => {
     occurrencesInRange(b, todayDj, sixWeeksLaterDj).forEach(ds => {
       const expAmt = getExpectedAmount(b, ds);
-      if (expAmt > 500) {
-        if (!isPaidOcc(b.id, ds)) {
-          largeBills.push({ bill: b, dateStr: ds, amount: expAmt });
-        }
+      if (expAmt > 500 && !isPaidOcc(b.id, ds)) {
+        largeBills.push({ bill: b, dateStr: ds, amount: expAmt });
       }
     });
   });
-
   largeBills.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
 
-  let largeBillsHtml = `
+  const largeBillsHtml = `
     <p class="section-label">Large Upcoming Bills (&gt; $500)</p>
-    <div class="card" style="padding: 14px; margin-bottom: 0;">
-  `;
+    <div class="card" style="padding:14px;margin-bottom:0">
+      ${largeBills.length === 0
+        ? `<div style="color:#666;font-size:14px;text-align:center;padding:10px 0"><i class="ti ti-circle-check" style="color:#639922;font-size:18px;vertical-align:middle;margin-right:4px"></i>No large bills (&gt;$500) due within the next 6 weeks.</div>`
+        : `<div style="display:flex;flex-direction:column;gap:10px">${largeBills.map(item => {
+            const daysLeft = dayjs(item.dateStr).diff(todayDj, 'day');
+            const timing = daysLeft === 0 ? 'due today' : daysLeft === 1 ? 'due tomorrow' : `in ${daysLeft} days`;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0f0e8;padding-bottom:8px">
+              <div><span style="font-weight:600;font-size:14px">${esc(item.bill.name)}</span>
+                <div style="font-size:12px;color:#888;margin-top:2px">Due ${dayjs(item.dateStr).format('ddd D MMM YYYY')} (${timing})</div>
+              </div>
+              <span style="font-weight:700;font-size:15px;color:#991b1b">$${item.amount.toFixed(2)}</span>
+            </div>`;
+          }).join('')}</div>`
+      }
+    </div>`;
 
-  if (largeBills.length === 0) {
-    largeBillsHtml += `
-      <div style="color: #666; font-size: 14px; text-align: center; padding: 10px 0;">
-        <i class="ti ti-circle-check" style="color: #639922; font-size: 18px; vertical-align: middle; margin-right: 4px;"></i>
-        No large bills (&gt; $500) due within the next 6 weeks.
-      </div>
-    `;
-  } else {
-    largeBillsHtml += `<div style="display: flex; flex-direction: column; gap: 10px;">`;
-    largeBills.forEach(item => {
-      const daysLeft = dayjs(item.dateStr).diff(todayDj, 'day');
-      let timingStr = daysLeft === 0 ? 'due today' : (daysLeft === 1 ? 'due tomorrow' : `in ${daysLeft} days`);
-      largeBillsHtml += `
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0e8; padding-bottom: 8px;">
-          <div>
-            <span style="font-weight: 600; font-size: 14px; color: #1a1a18;">${esc(item.bill.name)}</span>
-            <div style="font-size: 12px; color: #888; margin-top: 2px;">Due ${dayjs(item.dateStr).format('ddd D MMM YYYY')} (${timingStr})</div>
-          </div>
-          <div style="text-align: right;">
-            <span style="font-weight: 700; font-size: 15px; color: #991b1b;">$${item.amount.toFixed(2)}</span>
-          </div>
+  // Expandable pay-from-pay breakdown
+  const payFromPayDetail = payFromPayItems.length > 0
+    ? `<div id="payFromPayExpand" style="display:none">
+        <div class="pay-expand-row">
+          ${payFromPayItems.map(i=>`<div class="pay-expand-item"><span>${esc(i.name)} <span style="color:#aaa;font-size:11px">due ${i.due}</span></span><span style="font-weight:600;color:#991b1b">$${i.amount.toFixed(2)}</span></div>`).join('')}
         </div>
-      `;
-    });
-    largeBillsHtml += `</div>`;
-  }
-  largeBillsHtml += `</div>`;
+      </div>` : '';
 
   document.getElementById('panel-overview').innerHTML = `
-    <p class="section-label">Payday Dashboard</p>
-    <div class="hero" style="background: #1e40af; margin-bottom: 12px;">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <button class="btn-export" onclick="showExportMessage()">
+        <i class="ti ti-send" aria-hidden="true"></i> Export instructions
+      </button>
+    </div>
+
+    <div class="hero" style="background:#1e40af;margin-bottom:12px">
       <div class="hero-label">Estimated Disposable Income</div>
-      <div class="hero-amount" style="${isNegative ? 'color: #fca5a5;' : ''}">$${disposable.toFixed(2)}</div>
-      <div class="hero-sub">Uncommitted cash remaining inside your spending account this cycle after covering structural obligations.</div>
+      <div class="hero-amount" style="${isNegative?'color:#fca5a5':''}">$${disposable.toFixed(2)}</div>
+      <div class="hero-sub">Cash remaining after bills fund transfer and direct pay obligations.</div>
     </div>
 
     <p class="section-label">Payday Setup</p>
     <div class="card">
       <div class="field">
         <label>Payday Net Pay ($)</label>
-        <input type="number" value="${pay || ''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal" onchange="settings.paydayPay = parseFloat(this.value)||0; saveSettingsDebounced(); renderAll();">
+        <input type="number" value="${pay||''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal" onchange="settings.paydayPay=parseFloat(this.value)||0;saveSettingsDebounced();renderAll();">
       </div>
-      <div class="field-row" style="margin-top: 10px;">
+      <div class="field-row" style="margin-top:10px">
         <div class="field">
           <label>Payday Date</label>
-          <input type="date" value="${pv}" onchange="settings.paydayDate = this.value; saveSettingsDebounced(); renderAll();">
+          <input type="date" value="${pv}" onchange="settings.paydayDate=this.value;saveSettingsDebounced();renderAll();">
         </div>
         <div class="field">
           <label>Pay Frequency</label>
-          <select onchange="settings.paydayFreq = this.value; saveSettingsDebounced(); renderAll();">
-            <option value="weekly" ${freq === 'weekly' ? 'selected' : ''}>Weekly</option>
-            <option value="fortnightly" ${freq === 'fortnightly' ? 'selected' : ''}>Fortnightly</option>
-            <option value="monthly" ${freq === 'monthly' ? 'selected' : ''}>Monthly</option>
+          <select onchange="settings.paydayFreq=this.value;saveSettingsDebounced();renderAll();">
+            <option value="weekly" ${freq==='weekly'?'selected':''}>Weekly</option>
+            <option value="fortnightly" ${freq==='fortnightly'?'selected':''}>Fortnightly</option>
+            <option value="monthly" ${freq==='monthly'?'selected':''}>Monthly</option>
           </select>
         </div>
       </div>
-      
-      <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 9px; font-size: 14px; border-top: 1px solid #e8e8e0; padding-top: 14px;">
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e8e8e0; padding-bottom: 5px;">
-          <span style="color: #666;">💰 Take-home Pay:</span>
+
+      <div style="margin-top:18px;display:flex;flex-direction:column;gap:9px;font-size:14px;border-top:1px solid #e8e8e0;padding-top:14px">
+        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #e8e8e0;padding-bottom:5px">
+          <span style="color:#666">💰 Take-home Pay:</span>
           <strong>+$${pay.toFixed(2)}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e8e8e0; padding-bottom: 5px;">
-          <span style="color: #666;">🛡️ Bills Fund Deposit (Safe Pace):</span>
-          <span style="color: #065f46; font-weight: 600;">-$${safePace.toFixed(2)}</span>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #e8e8e0;padding-bottom:5px">
+          <span style="color:#666">🛡️ Bills Fund Deposit (Safe Pace):</span>
+          <span style="color:#065f46;font-weight:600">-$${safePace.toFixed(2)}</span>
         </div>
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #e8e8e0; padding-bottom: 5px;">
-          <span style="color: #666;">🚗 Paid From Pay (Excluded Bills):</span>
-          <span style="color: #991b1b; font-weight: 600;">-$${directFromPayAmt.toFixed(2)}</span>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;${directFromPayAmt>0?'border-bottom:1px dashed #e8e8e0;':''}padding-bottom:5px">
+            <span style="color:#666;flex:1">🚗 Paid From Pay (Excluded Bills):</span>
+            <span style="color:#991b1b;font-weight:600;margin-right:6px">-$${directFromPayAmt.toFixed(2)}</span>
+            ${payFromPayItems.length>0?`<button class="btn-caret" id="payFromPayBtn" onclick="togglePayFromPay()" title="Show breakdown" aria-label="Expand pay from pay breakdown"><i class="ti ti-chevron-down" id="payFromPayIcon" style="font-size:16px"></i></button>`:''}
+          </div>
+          ${payFromPayDetail}
         </div>
-        <div style="display: flex; justify-content: space-between; font-weight: 700; margin-top: 5px; font-size: 15px;">
+        <div style="display:flex;justify-content:space-between;font-weight:700;margin-top:5px;font-size:15px">
           <span>🎈 Disposable Income Left:</span>
-          <span style="color: ${isNegative ? '#ef4444' : '#1e40af'}">$${disposable.toFixed(2)}</span>
+          <span style="color:${isNegative?'#ef4444':'#1e40af'}">$${disposable.toFixed(2)}</span>
         </div>
       </div>
     </div>
@@ -580,13 +593,13 @@ function renderOverview(safePace) {
     <div class="grid2">
       <div class="metric">
         <div class="m-label">Scheduled DDs</div>
-        <div class="m-value" style="color: #1e40af;">$${autoPaidDDAmt.toFixed(2)}</div>
-        <div class="m-sub">Direct debits running this cycle</div>
+        <div class="m-value" style="color:#1e40af">$${autoPaidDDAmt.toFixed(2)}</div>
+        <div class="m-sub">Direct debits this cycle</div>
       </div>
       <div class="metric">
         <div class="m-label">Fund Target</div>
-        <div class="m-value" style="color: #065f46;">$${safePace.toFixed(2)}</div>
-        <div class="m-sub">Move to Bills account today</div>
+        <div class="m-value" style="color:#065f46">$${safePace.toFixed(2)}</div>
+        <div class="m-sub">Transfer to Bills account</div>
       </div>
     </div>
 
@@ -908,14 +921,22 @@ function renderPayday(){
   
   const ddCount=fundOccs.filter(o=>o.bill.dd).length;
 
+  const ddFundedAmt   = fundOccs.filter(o=>o.bill.dd).reduce((s,o)=>s+getExpectedAmount(o.bill,o.ds),0);
+  const billsFunded   = cachedSafePace || 0;   // what gets transferred to the bills account
+  const totalFunded   = ddFundedAmt + billsFunded;
+
   const summaryHtml=`
     <div class="grid2">
-      <div class="metric"><div class="m-label">Total due</div><div class="m-value">$${fundTotal.toFixed(2)}</div></div>
-      <div class="metric"><div class="m-label">Still to pay</div><div class="m-value">$${remain.toFixed(2)}</div></div>
-      <div class="metric"><div class="m-label">Fund bills</div><div class="m-value">${fundOccs.length}</div></div>
-      <div class="metric"><div class="m-label">Pending DDs</div><div class="m-value" style="${pendingDDTotal > 0 ? 'color: #1e40af; font-weight:700;' : ''}">$${pendingDDTotal.toFixed(2)}</div></div>
+      <div class="metric"><div class="m-label">Total due</div><div class="m-value">$${fundTotal.toFixed(2)}</div><div class="m-sub">Fund bills this cycle</div></div>
+      <div class="metric"><div class="m-label">Total funded</div><div class="m-value">$${totalFunded.toFixed(2)}</div><div class="m-sub">DD kept + fund transfer</div></div>
+      <div class="metric"><div class="m-label">DD funded</div><div class="m-value" style="color:#1e40af">$${ddFundedAmt.toFixed(2)}</div><div class="m-sub">Keep in pay account</div></div>
+      <div class="metric"><div class="m-label">Bills funded</div><div class="m-value" style="color:#065f46">$${billsFunded.toFixed(2)}</div><div class="m-sub">Transfer to bills account</div></div>
     </div>
-    ${ddCount>0?`<div class="banner banner-blue" style="margin-top:10px;"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} running this cycle — tap to check off once paid</div>`:''}`;
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:12px;color:#888">Still to pay this cycle</span>
+      <span style="font-size:14px;font-weight:700">$${remain.toFixed(2)}</span>
+    </div>
+    ${ddCount>0?`<div class="banner banner-blue"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} running this cycle — tap to uncheck if payment fails</div>`:''}`;
 
   const odHtml=odOccs.length===0?'':
     `<p class="section-label" style="color:#991b1b">⚠ Overdue bills</p>
@@ -1063,6 +1084,86 @@ async function clearPartialAmt(billId, ds, itemId) {
   paidKeys = paidKeys.filter(x => x !== k);
   renderPayday();
   try { await savePaid(); } catch(e) { console.error('clearPartialAmt failed:', e); }
+}
+
+// togglePayFromPay: expand/collapse the paid-from-pay breakdown in the overview
+function togglePayFromPay() {
+  const section = document.getElementById('payFromPayExpand');
+  const icon    = document.getElementById('payFromPayIcon');
+  if (!section) return;
+  const opening = section.style.display === 'none';
+  section.style.display = opening ? 'block' : 'none';
+  if (icon) icon.className = opening ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
+}
+
+// showExportMessage: build the payday instructions message and display a copy sheet
+function showExportMessage() {
+  const pay  = settings.paydayPay || 0;
+  const pv   = settings.paydayDate || tod();
+  const freq = settings.paydayFreq || 'fortnightly';
+  const sp   = cachedSafePace || calculateSafePace();
+  const start= dayjs(pv);
+  const dates= getPayCycleDates(start, freq, 0);
+
+  let fromPayAmt = 0, ddAmt = 0;
+  bills.forEach(b => {
+    occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
+      const expAmt = getExpectedAmount(b, ds);
+      if (b.fundExclude) fromPayAmt += expAmt;
+      else if (b.dd)     ddAmt      += expAmt;
+    });
+  });
+
+  const discretionary = pay - fromPayAmt - ddAmt - sp;
+  const lines = [];
+  if (fromPayAmt > 0) lines.push(`  • $${fromPayAmt.toFixed(2)} for your regular payday bills.`);
+  if (ddAmt > 0)      lines.push(`  • $${ddAmt.toFixed(2)} is needed for your direct debits.`);
+  lines.push(          `  • $${sp.toFixed(2)} is transferred to your bills fund.`);
+
+  const msg =
+`This pay you will receive $${pay.toFixed(2)}.
+From this you will pay:
+
+${lines.join('\n')}
+
+This leaves you with $${Math.max(discretionary, 0).toFixed(2)} for discretionary spending.`;
+
+  // Remove any existing overlay
+  const existing = document.getElementById('exportOverlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'export-overlay';
+  overlay.id = 'exportOverlay';
+  overlay.innerHTML = `
+    <div class="export-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <strong style="font-size:16px">📋 Payday instructions</strong>
+        <button onclick="document.getElementById('exportOverlay').remove()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:22px;line-height:1">✕</button>
+      </div>
+      <textarea class="export-text" readonly rows="10" id="exportText">${msg}</textarea>
+      <button class="btn-primary" style="margin-top:12px" onclick="copyExportText()">
+        <i class="ti ti-copy" aria-hidden="true"></i> Copy to clipboard
+      </button>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// copyExportText: copy the export message to the clipboard
+function copyExportText() {
+  const text = document.getElementById('exportText')?.value;
+  if (!text) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(()=>toast('Copied ✓')).catch(()=>legacyCopy());
+  } else {
+    legacyCopy();
+  }
+  function legacyCopy() {
+    const ta = document.getElementById('exportText');
+    ta.select(); ta.setSelectionRange(0, 99999);
+    try { document.execCommand('copy'); toast('Copied ✓'); } catch(e) { toast('Select text above to copy'); }
+  }
 }
 function renderFund(safePace){
   if (safePace === undefined) safePace = calculateSafePace();
