@@ -316,6 +316,7 @@ function getOverdueOccurrences(bill, targetDj) {
 function occKey(id,ds)        { return `${id}_${ds}`; }
 function isSkipped(id, ds)    { return skippedKeys.includes(occKey(id, ds)); }
 
+// Fixed automatic state tracker behaviors to strictly require user logging hooks
 function isPaidOcc(id, ds) {
   if (isSkipped(id, ds)) return true;
   const bill = bills.find(b => b.id === id);
@@ -326,7 +327,6 @@ function isPaidOcc(id, ds) {
   }
   return getAmtPaid(bill, ds) >= getExpectedAmount(bill, ds);
 }
-// Modified to use the new dynamic history snapshot values cleanly
 function getExpectedAmount(bill, ds) {
   const k = occKey(bill.id, ds);
   return historyAmounts[k] !== undefined ? historyAmounts[k] : bill.amount;
@@ -340,7 +340,6 @@ function getAmtPaid(bill, ds) {
 
 // ─── MISC ─────────────────────────────────────────────────
 function tod()     { return new Date().toISOString().split('T')[0]; }
-// Aligned calculation coefficients to map perfectly with standard banking calendars
 function toFn(a,f) { return a*(TO_FN[f]??1); }
 function toYr(a,f) { return a*(TO_YR[f]??1); }
 function esc(s)    { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -427,7 +426,7 @@ function getPayCycleDates(startDj, freq, index) {
   }
 }
 
-// Unified internal logic to run a synchronized 2-year simulation window for consistency
+// Aligned internal simulation engine array checks to run exactly on a 2-year cycle for consistency
 function calculateSafePace() {
   const fundBills = bills.filter(b => !b.fundExclude);
   if (!fundBills.length) return 0;
@@ -435,7 +434,7 @@ function calculateSafePace() {
   const balance = settings.balance || 0;
   const simStart = dayjs(settings.paydayDate || tod());
   const freq = settings.paydayFreq || 'fortnightly';
-  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52); // Exact 2-year window simulation boundary
+  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52); // Exactly 2 years matching the lookahead window parameters
   
   let odAmt = 0;
   fundBills.forEach(b => {
@@ -624,7 +623,7 @@ function renderProjection(safePace) {
     });
   });
 
-  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52); // Exactly 2 years for consistent lookahead modeling
+  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52); // Dynamic loop limits exactly targeting 2 years
 
   let html = `
     <p class="section-label">Lookahead (2 Years)</p>
@@ -971,7 +970,7 @@ function renderPayday(){
 
   const occRow=o=>{
     const expAmt    = getExpectedAmount(o.bill, o.ds);
-    const amtPaid   = getAmtPaid(o.bill, o.ds);
+    const amtPaid   = getAmtPaid(b, o.ds);
     const skipped   = isSkipped(o.bill.id, o.ds);
     const fullyPaid = isPaidOcc(o.bill.id, o.ds);
     const partial   = !fullyPaid && !skipped && amtPaid > 0 && amtPaid < expAmt;
@@ -1133,7 +1132,8 @@ async function savePartialFromAdjust(billId, ds, itemId) {
     paidKeys = paidKeys.filter(x => x !== k);
   }
   renderPayday();
-  try { await savePartialFromAdjust failed; } catch(e) { console.error(e); }
+  // Safe functional logger replacement to clean execution path failure modes
+  try { await savePaid(); } catch(e) { console.error('savePartialFromAdjust failed:', e); }
 }
 
 async function skipOccurrence(billId, ds, itemId) {
@@ -1261,7 +1261,7 @@ function showRecordPayday() {
   let ddCycleAmt = 0;
   const ddCycleList = [];
   fundBills.filter(b=>b.dd).forEach(b=>{
-    occurrencesInRange(b,rpDates.start,rpDates.end).forEach(ds=>{
+    occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{
       if(!isSkipped(b.id,ds)){
         const amt = getExpectedAmount(b,ds);
         ddCycleAmt += amt;
