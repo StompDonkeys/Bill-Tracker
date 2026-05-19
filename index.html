@@ -922,13 +922,13 @@ function renderPayday(){
   const ddCount=fundOccs.filter(o=>o.bill.dd).length;
 
   const ddFundedAmt   = fundOccs.filter(o=>o.bill.dd).reduce((s,o)=>s+getExpectedAmount(o.bill,o.ds),0);
-  const billsFunded   = cachedSafePace || 0;   // what gets transferred to the bills account
-  const totalFunded   = ddFundedAmt + billsFunded;
+  const totalFunded   = cachedSafePace || 0;   // safe pace covers ALL forward spending incl. DDs
+  const billsFunded   = Math.max(totalFunded - ddFundedAmt, 0); // actual transfer to bills account
 
   const summaryHtml=`
     <div class="grid2">
       <div class="metric"><div class="m-label">Total due</div><div class="m-value">$${fundTotal.toFixed(2)}</div><div class="m-sub">Fund bills this cycle</div></div>
-      <div class="metric"><div class="m-label">Total funded</div><div class="m-value">$${totalFunded.toFixed(2)}</div><div class="m-sub">DD kept + fund transfer</div></div>
+      <div class="metric"><div class="m-label">Total funded</div><div class="m-value">$${totalFunded.toFixed(2)}</div><div class="m-sub">Full bills fund contribution</div></div>
       <div class="metric"><div class="m-label">DD funded</div><div class="m-value" style="color:#1e40af">$${ddFundedAmt.toFixed(2)}</div><div class="m-sub">Keep in pay account</div></div>
       <div class="metric"><div class="m-label">Bills funded</div><div class="m-value" style="color:#065f46">$${billsFunded.toFixed(2)}</div><div class="m-sub">Transfer to bills account</div></div>
     </div>
@@ -1114,11 +1114,14 @@ function showExportMessage() {
     });
   });
 
-  const discretionary = pay - fromPayAmt - ddAmt - sp;
+  // Transfer to bills account = safe pace minus the DD portion kept in pay account
+  const transferAmt  = Math.max(sp - ddAmt, 0);
+  // Discretionary = pay minus everything committed (pay-from-pay bills + full safe pace)
+  const discretionary = pay - fromPayAmt - sp;
   const lines = [];
   if (fromPayAmt > 0) lines.push(`  • $${fromPayAmt.toFixed(2)} for your regular payday bills.`);
-  if (ddAmt > 0)      lines.push(`  • $${ddAmt.toFixed(2)} is needed for your direct debits.`);
-  lines.push(          `  • $${sp.toFixed(2)} is transferred to your bills fund.`);
+  if (ddAmt > 0)      lines.push(`  • $${ddAmt.toFixed(2)} is needed for your direct debits (keep in pay account).`);
+  lines.push(          `  • $${transferAmt.toFixed(2)} is transferred to your bills fund.`);
 
   const msg =
 `This pay you will receive $${pay.toFixed(2)}.
