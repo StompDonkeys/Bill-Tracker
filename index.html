@@ -629,12 +629,12 @@ function renderProjection(safePace) {
     });
   });
 
-  const cyclesCount = freq === 'weekly' ? 156 : (freq === 'monthly' ? 36 : 78);
+  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52);
 
   let html = `
-    <p class="section-label">Optimization Lookahead (3 Years)</p>
+    <p class="section-label">Lookahead (2 Years)</p>
     <div class="banner banner-blue" style="margin-bottom: 12px;">
-      <i class="ti ti-info-circle"></i> Running a full 3-year timeline model (${cyclesCount} periods) to verify optimal funding trajectories.
+      <i class="ti ti-info-circle"></i> 2-year forward model (${cyclesCount} periods). Safepace simulation runs 3 years internally for accuracy.
     </div>
     <div class="card" style="padding: 12px; overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 480px;">
@@ -1550,9 +1550,14 @@ function renderFund(safePace){
     ${setupCard}
     ${recordCard}
     <div class="hero">
-      <div class="hero-label">Contribute each pay cycle</div>
+      <div class="hero-label">Total bills fund commitment per cycle</div>
       <div class="hero-amount">$${thisFn.toFixed(2)}</div>
-      <div class="hero-sub">${behind ? `Pace optimized to absorb an upcoming clump or clear history shortfall.` : 'Perfect alignment — your current balance covers all future bill horizons.'}</div>
+      <div class="hero-sub">
+        ${rpDDAmt > 0
+          ? `Transfer <strong style="color:#fff">$${rpBillsFunded.toFixed(2)}</strong> to bills account · Keep <strong style="color:#fff">$${rpDDAmt.toFixed(2)}</strong> in pay account for DDs`
+          : `Transfer <strong style="color:#fff">$${rpBillsFunded.toFixed(2)}</strong> to your bills account`}
+      </div>
+      ${behind ? `<div style="margin-top:8px;font-size:11px;opacity:.75">Pace optimized to absorb an upcoming clump or shortfall.</div>` : ''}
     </div>
     <div class="grid2">
       <div class="metric"><div class="m-label">Simulated pace</div><div class="m-value">$${thisFn.toFixed(2)}<span style="font-size:13px;font-weight:400;color:#888">/fn</span></div><div class="m-sub">Ensures balance ≥ $0</div></div>
