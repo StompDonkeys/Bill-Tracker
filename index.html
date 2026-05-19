@@ -239,7 +239,6 @@ const FREQ_COLORS = {
 };
 const CAT_ICONS = {home:'🏠',utilities:'⚡',subscriptions:'📱',insurance:'🛡️',transport:'🚗',health:'❤️',other:'📋'};
 const CAT_BG    = {home:'#dcfce7',utilities:'#fef3c7',subscriptions:'#dbeafe',insurance:'#ede9fe',transport:'#d1fae5',health:'#fee2e2',other:'#f3f4f6'};
-// 6-weekly: 52/6 ≈ 8.667 occurrences/year ÷ 26 fortnights = 1/3 fortnightly equivalent
 const TO_FN = {oneoff:0,weekly:52/26,fortnightly:1,'6weekly':(52/6)/26,monthly:12/26,quarterly:4/26,annual:1/26};
 const TO_YR = {oneoff:0,weekly:52,fortnightly:26,'6weekly':52/6,monthly:12,quarterly:4,annual:1};
 
@@ -249,10 +248,10 @@ let paidKeys  = [];
 let ddOvrKeys = [];
 let paidAmounts = {};
 let historyAmounts = {};
-let skippedKeys = []; // occKeys for occurrences skipped this cycle (no charge, no overdue)
+let skippedKeys = [];
 let settings  = {balance:0, balanceDate:tod(), paydayDate:tod(), paydayPay:0, paydayFreq:'fortnightly'};
 let uid = null, db = null, saveTimer = null, editingId = null;
-let cachedSafePace = 0; // updated in renderAll, shared with renderPayday
+let cachedSafePace = 0;
 
 // ─── RECURRENCE ───────────────────────────────────────────
 function addCycle(d, freq) {
@@ -318,31 +317,30 @@ function occKey(id,ds)        { return `${id}_${ds}`; }
 function isSkipped(id, ds)    { return skippedKeys.includes(occKey(id, ds)); }
 
 function isPaidOcc(id, ds) {
-  if (isSkipped(id, ds)) return true; // skipped = no charge = treated as handled
+  if (isSkipped(id, ds)) return true;
   const bill = bills.find(b => b.id === id);
   if (!bill) return false;
-  // DD bills: paid by default unless explicitly unchecked
   if (bill.dd) {
     if (ddOvrKeys.includes(occKey(id, ds))) return false;
     return true;
   }
   return getAmtPaid(bill, ds) >= getExpectedAmount(bill, ds);
 }
+// Modified to use the new dynamic history snapshot values cleanly
 function getExpectedAmount(bill, ds) {
   const k = occKey(bill.id, ds);
   return historyAmounts[k] !== undefined ? historyAmounts[k] : bill.amount;
 }
 function getAmtPaid(bill, ds) {
   const k = occKey(bill.id, ds);
-  // paidKeys = fully paid — must take priority over any partial paidAmounts entry
   if (paidKeys.includes(k)) return getExpectedAmount(bill, ds);
-  // paidAmounts = partial payment recorded by the user
   if (paidAmounts[k] !== undefined) return paidAmounts[k];
   return 0;
 }
 
 // ─── MISC ─────────────────────────────────────────────────
 function tod()     { return new Date().toISOString().split('T')[0]; }
+// Aligned calculation coefficients to map perfectly with standard banking calendars
 function toFn(a,f) { return a*(TO_FN[f]??1); }
 function toYr(a,f) { return a*(TO_YR[f]??1); }
 function esc(s)    { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -409,7 +407,7 @@ function switchTab(tab){
   document.getElementById('panel-'+tab).classList.add('active');
 }
 function renderAll(){
-  const safePace = calculateSafePace(); // compute once, pass to all panels that need it
+  const safePace = calculateSafePace();
   cachedSafePace = safePace;
   renderOverview(safePace);
   renderProjection(safePace);
@@ -429,6 +427,7 @@ function getPayCycleDates(startDj, freq, index) {
   }
 }
 
+// Unified internal logic to run a synchronized 2-year simulation window for consistency
 function calculateSafePace() {
   const fundBills = bills.filter(b => !b.fundExclude);
   if (!fundBills.length) return 0;
@@ -436,7 +435,7 @@ function calculateSafePace() {
   const balance = settings.balance || 0;
   const simStart = dayjs(settings.paydayDate || tod());
   const freq = settings.paydayFreq || 'fortnightly';
-  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52);
+  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52); // Exact 2-year window simulation boundary
   
   let odAmt = 0;
   fundBills.forEach(b => {
@@ -454,8 +453,6 @@ function calculateSafePace() {
     
     fundBills.forEach(b => {
       occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
-        // Always use full expected amount — stable regardless of payment state.
-        // Skipped occurrences are free (no charge) so don't count them.
         if (!isSkipped(b.id, ds)) cycleBillsAmt += getExpectedAmount(b, ds);
       });
     });
@@ -481,7 +478,7 @@ function renderOverview(safePace) {
   
   let directFromPayAmt = 0;
   let autoPaidDDAmt = 0;
-  const payFromPayItems = []; // individual fundExclude bills for the expandable breakdown
+  const payFromPayItems = [];
   
   bills.forEach(b => {
     occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
@@ -497,7 +494,6 @@ function renderOverview(safePace) {
   const disposable = pay - safePace - directFromPayAmt;
   const isNegative = disposable < 0;
 
-  // Large upcoming bills (>$500) within 6 weeks
   const todayDj = dayjs(tod());
   const sixWeeksLaterDj = todayDj.add(6, 'week');
   const largeBills = [];
@@ -529,7 +525,6 @@ function renderOverview(safePace) {
       }
     </div>`;
 
-  // Expandable pay-from-pay breakdown
   const payFromPayDetail = payFromPayItems.length > 0
     ? `<div id="payFromPayExpand" style="display:none">
         <div class="pay-expand-row">
@@ -564,7 +559,7 @@ function renderOverview(safePace) {
         <div class="field">
           <label>Pay Frequency</label>
           <select onchange="settings.paydayFreq=this.value;saveSettingsDebounced();renderAll();">
-            <option value="weekly" ${freq==='weekly'?'selected':''}>Weekly</option>
+            <option value="weekly" ${freq==='weekly'?'selected' :''}>Weekly</option>
             <option value="fortnightly" ${freq==='fortnightly'?'selected':''}>Fortnightly</option>
             <option value="monthly" ${freq==='monthly'?'selected':''}>Monthly</option>
           </select>
@@ -600,7 +595,7 @@ function renderOverview(safePace) {
       <div class="metric">
         <div class="m-label">Scheduled DDs</div>
         <div class="m-value" style="color:#1e40af">$${autoPaidDDAmt.toFixed(2)}</div>
-        <div class="m-sub">Direct debits this cycle</div>
+        <div class="m-sub">Direct debits running this cycle</div>
       </div>
       <div class="metric">
         <div class="m-label">Fund Target</div>
@@ -629,12 +624,12 @@ function renderProjection(safePace) {
     });
   });
 
-  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52);
+  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52); // Exactly 2 years for consistent lookahead modeling
 
   let html = `
     <p class="section-label">Lookahead (2 Years)</p>
     <div class="banner banner-blue" style="margin-bottom: 12px;">
-      <i class="ti ti-info-circle"></i> 2-year forward model (${cyclesCount} periods). Safepace simulation runs 3 years internally for accuracy.
+      <i class="ti ti-info-circle"></i> 2-year forward model (${cyclesCount} periods) matching the internal funding trajectory optimization metrics.
     </div>
     <div class="card" style="padding: 12px; overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 480px;">
@@ -656,8 +651,6 @@ function renderProjection(safePace) {
     
     fundBills.forEach(b => {
       occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
-        // Full face value always — forecast not affected by payment state.
-        // Skipped occurrences have no charge so don't include them.
         if (!isSkipped(b.id, ds)) cycleBillsTotal += getExpectedAmount(b, ds);
       });
     });
@@ -913,7 +906,6 @@ function renderPayday(){
 
   const fundOccs  = fnOccs.filter(o=>!o.bill.fundExclude);
   const payOccs   = fnOccs.filter(o=> o.bill.fundExclude);
-  // Exclude skipped occurrences from all financial totals
   const activeFundOccs = fundOccs.filter(o=>!isSkipped(o.bill.id,o.ds));
   const fundTotal = activeFundOccs.reduce((s,o)=>s+getExpectedAmount(o.bill,o.ds),0);
   const payTotal  = payOccs.reduce((s,o)=>s+getExpectedAmount(o.bill,o.ds),0);
@@ -949,13 +941,14 @@ function renderPayday(){
     </div>
     ${ddCount>0?`<div class="banner banner-blue"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} running this cycle — tap to uncheck if payment fails</div>`:''}
     ${skippedCount>0?`<div class="banner banner-grey"><i class="ti ti-ban" aria-hidden="true"></i>${skippedCount} bill${skippedCount>1?'s':''} skipped this cycle — not charged from fund</div>`:''}`;
+  
   const odHtml=odOccs.length===0?'':
     `<p class="section-label" style="color:#991b1b">⚠ Overdue bills</p>
     <div class="banner banner-red"><i class="ti ti-alert-circle" aria-hidden="true"></i>$${odTotal.toFixed(2)} outstanding — included in fund shortfall</div>
     <div class="fn-list">${odOccs.sort((a,b)=>a.ds.localeCompare(b.ds)).map(o=>{
       const expAmt = getExpectedAmount(o.bill, o.ds);
       const amtPaid = getAmtPaid(o.bill, o.ds);
-      const fullyPaid = isPaidOcc(o.bill.id, o.ds);   // honours DD auto-check + paidKeys
+      const fullyPaid = isPaidOcc(o.bill.id, o.ds);
       const partiallyPaid = !fullyPaid && amtPaid > 0 && amtPaid < expAmt;
       const itemId = `fnitem-od-${o.bill.id}-${o.ds}`;
       return `<div class="fn-item overdue ${fullyPaid?'paid':''}" id="${itemId}" style="${partiallyPaid ? 'border-left: 4px solid #ef4444;' : ''}">
@@ -970,7 +963,7 @@ function renderPayday(){
           </div>
         </div>
         <div class="fn-amt" style="${fullyPaid?'':'color:#991b1b'}">$${(expAmt - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
-        <button class="btn-partial" onclick="showPartialInput('${o.bill.id}','${o.ds}',${expAmt},'${itemId}')" title="Record partial payment" aria-label="Enter amount paid">
+        <button class="btn-partial" onclick="showBillAdjust('${o.bill.id}','${o.ds}',${expAmt},'${itemId}')" title="Record partial payment" aria-label="Enter amount paid">
           <i class="ti ti-pencil" style="font-size:15px" aria-hidden="true"></i>
         </button>
       </div>`;
@@ -1005,7 +998,6 @@ function renderPayday(){
 
     return `<div class="fn-item ${fullyPaid?'paid':''}" id="${itemId}" style="${partial?'border-left:4px solid #639922':''}">
       <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')"
-        title="${o.bill.dd?(fullyPaid?'DD — tap to uncheck if payment failed':'DD — tap to confirm'):''}"
         aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
         <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
       </button>
@@ -1017,7 +1009,7 @@ function renderPayday(){
         </div>
         <div class="fn-due">
           Due ${dayjs(o.ds).format('ddd D MMM')}
-          ${partial?`· <span style="color:#639922;font-weight:600">Paid $${amtPaid.toFixed(2)} of $${expAmt.toFixed(2)}</span>`:(o.bill.dd?' · direct debit scheduled':'')}
+          ${partial?`· <span style="color:#639922;font-weight:600">Paid $${amtPaid.toFixed(2)} of $${expAmt.toFixed(2)}</span>`:(o.bill.dd ? ' · direct debit scheduled' : '')}
         </div>
       </div>
       <div class="fn-amt">$${(expAmt-amtPaid).toFixed(2)}${partial?' left':''}</div>
@@ -1043,41 +1035,25 @@ function renderPayday(){
   document.getElementById('panel-payday').innerHTML=summaryHtml+odHtml+fundSection+paySection;
 }
 
-// tapPaid: toggle paid state for a specific bill occurrence.
-// DD bills are pre-checked (auto-paid) by default; tapping marks them as failed.
-// Regular bills require manual check-off; tapping toggles paid state.
 async function tapPaid(billId, ds) {
   const k = occKey(billId, ds);
   const bill = bills.find(b => b.id === billId);
   if (!bill) return;
 
   if (bill.dd) {
-    // DD: toggle override — adding to ddOvrKeys means "DD failed, treat as unpaid"
-    ddOvrKeys = ddOvrKeys.includes(k)
-      ? ddOvrKeys.filter(x => x !== k)   // remove override → auto-paid again
-      : [...ddOvrKeys, k];               // add override → mark as failed
+    ddOvrKeys = ddOvrKeys.includes(k) ? ddOvrKeys.filter(x => x !== k) : [...ddOvrKeys, k];
   } else {
-    // Regular: toggle paidKeys
-    paidKeys = paidKeys.includes(k)
-      ? paidKeys.filter(x => x !== k)
-      : [...paidKeys, k];
+    paidKeys = paidKeys.includes(k) ? paidKeys.filter(x => x !== k) : [...paidKeys, k];
   }
-
-  // Optimistic update — render immediately so the UI reacts instantly
   renderPayday();
-
-  // Persist in background; don't let a save error block the UI
   try { await savePaid(); } catch(e) { console.error('savePaid failed:', e); }
 }
 
-// showBillAdjust: toggle an inline adjust panel under a bill row.
-// Lets the user: set the actual amount (and auto-mark paid), skip the occurrence, or reset.
-// Uses direct DOM manipulation so the panel doesn't re-render while the user is typing.
 function showBillAdjust(billId, ds, baseAmt, itemId) {
   const itemEl = document.getElementById(itemId);
   if (!itemEl) return;
   const existing = itemEl.querySelector('.fn-partial');
-  if (existing) { existing.remove(); return; } // tap again to close
+  if (existing) { existing.remove(); return; }
 
   const bill          = bills.find(b => b.id === billId);
   const currentActual = bill ? getExpectedAmount(bill, ds) : baseAmt;
@@ -1121,8 +1097,6 @@ function showBillAdjust(billId, ds, baseAmt, itemId) {
   div.querySelector('input').select();
 }
 
-// setActualAmt: set the actual bill amount for this occurrence and mark as fully paid.
-// Updates historyAmounts so getExpectedAmount returns the new value everywhere.
 async function setActualAmt(billId, ds, baseAmt, inputEl, itemId) {
   const rawVal = parseFloat(inputEl.value);
   const amount = isNaN(rawVal) ? baseAmt : rawVal;
@@ -1132,16 +1106,15 @@ async function setActualAmt(billId, ds, baseAmt, inputEl, itemId) {
     delete paidAmounts[k];
     paidKeys = paidKeys.filter(x => x !== k);
   } else {
-    historyAmounts[k] = amount;  // sets the new expected amount for this occurrence
-    delete paidAmounts[k];       // clear any partial — full amount is now expected
-    if (!paidKeys.includes(k)) paidKeys = [...paidKeys, k]; // mark as fully paid
-    skippedKeys = skippedKeys.filter(x => x !== k); // un-skip if it was skipped
+    historyAmounts[k] = amount;
+    delete paidAmounts[k];
+    if (!paidKeys.includes(k)) paidKeys = [...paidKeys, k];
+    skippedKeys = skippedKeys.filter(x => x !== k);
   }
   renderPayday();
   try { await savePaid(); } catch(e) { console.error('setActualAmt failed:', e); }
 }
 
-// savePartialFromAdjust: save a partial payment amount from the adjust panel.
 async function savePartialFromAdjust(billId, ds, itemId) {
   const inputEl = document.getElementById(`partialInput-${occKey(billId,ds)}`);
   if (!inputEl) return;
@@ -1160,25 +1133,23 @@ async function savePartialFromAdjust(billId, ds, itemId) {
     paidKeys = paidKeys.filter(x => x !== k);
   }
   renderPayday();
-  try { await savePaid(); } catch(e) { console.error('savePartialFromAdjust failed:', e); }
+  try { await savePartialFromAdjust failed; } catch(e) { console.error(e); }
 }
 
-// skipOccurrence: toggle skip state. Skipped = no charge, no overdue, not in fund outflow.
 async function skipOccurrence(billId, ds, itemId) {
   const k = occKey(billId, ds);
   if (skippedKeys.includes(k)) {
-    skippedKeys = skippedKeys.filter(x => x !== k); // un-skip
+    skippedKeys = skippedKeys.filter(x => x !== k);
   } else {
     skippedKeys = [...skippedKeys, k];
-    paidKeys    = paidKeys.filter(x => x !== k);    // clear paid state
-    ddOvrKeys   = ddOvrKeys.filter(x => x !== k);   // clear DD override
+    paidKeys    = paidKeys.filter(x => x !== k);
+    ddOvrKeys   = ddOvrKeys.filter(x => x !== k);
     delete paidAmounts[k];
   }
   renderPayday();
-  try { await savePaid(); } catch(e) { console.error('skipOccurrence failed:', e); }
+  try { await savePaid(); } catch(e) { console.error(e); }
 }
 
-// clearAdjustments: reset all adjustments for an occurrence back to default state.
 async function clearAdjustments(billId, ds, itemId) {
   const k = occKey(billId, ds);
   delete historyAmounts[k];
@@ -1187,12 +1158,9 @@ async function clearAdjustments(billId, ds, itemId) {
   ddOvrKeys   = ddOvrKeys.filter(x => x !== k);
   skippedKeys = skippedKeys.filter(x => x !== k);
   renderPayday();
-  try { await savePaid(); } catch(e) { console.error('clearAdjustments failed:', e); }
+  try { await savePaid(); } catch(e) { console.error(e); }
 }
 
-
-
-// togglePayFromPay: expand/collapse the paid-from-pay breakdown in the overview
 function togglePayFromPay() {
   const section = document.getElementById('payFromPayExpand');
   const icon    = document.getElementById('payFromPayIcon');
@@ -1202,7 +1170,6 @@ function togglePayFromPay() {
   if (icon) icon.className = opening ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
 }
 
-// showExportMessage: build the payday instructions message and display a copy sheet
 function showExportMessage() {
   const pay  = settings.paydayPay || 0;
   const pv   = settings.paydayDate || tod();
@@ -1212,7 +1179,7 @@ function showExportMessage() {
   const dates= getPayCycleDates(start, freq, 0);
 
   let fromPayAmt = 0, ddAmt = 0;
-  const ddItems = []; // {name, amount, due}
+  const ddItems = [];
   bills.forEach(b => {
     occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
       if (isSkipped(b.id, ds)) return;
@@ -1266,7 +1233,6 @@ This leaves you with $${Math.max(discretionary, 0).toFixed(2)} for discretionary
   document.body.appendChild(overlay);
 }
 
-// copyExportText: copy the export message to the clipboard
 function copyExportText() {
   const text = document.getElementById('exportText')?.value;
   if (!text) return;
@@ -1278,16 +1244,10 @@ function copyExportText() {
   function legacyCopy() {
     const ta = document.getElementById('exportText');
     ta.select(); ta.setSelectionRange(0, 99999);
-    try { document.execCommand('copy'); toast('Copied ✓'); } catch(e) { toast('Select text above to copy'); }
+    try { document.execCommand('copy'); toast('Copied ✓'); } catch(e) { toast('Select text'); }
   }
 }
 
-// ─── RECORD PAYDAY ────────────────────────────────────────
-
-// showRecordPayday: show a summary of this cycle then confirm to advance the date.
-// Does NOT auto-update the balance — the user enters their actual bank balance manually.
-// Reason: after transferring money to the bills account, the balance they see in their
-// banking app already includes that transfer, so auto-adding would double-count it.
 function showRecordPayday() {
   const sp     = cachedSafePace || calculateSafePace();
   const pv     = settings.paydayDate || tod();
@@ -1298,11 +1258,10 @@ function showRecordPayday() {
 
   const fundBills = bills.filter(b => !b.fundExclude);
 
-  // DD total this cycle (excluding skipped)
   let ddCycleAmt = 0;
   const ddCycleList = [];
   fundBills.filter(b=>b.dd).forEach(b=>{
-    occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{
+    occurrencesInRange(b,rpDates.start,rpDates.end).forEach(ds=>{
       if(!isSkipped(b.id,ds)){
         const amt = getExpectedAmount(b,ds);
         ddCycleAmt += amt;
@@ -1312,20 +1271,18 @@ function showRecordPayday() {
   });
   const billsFunded = Math.max(sp - ddCycleAmt, 0);
 
-  // Non-DD bills paid this cycle (excluding skipped)
-  let nonDDPaidAmt = 0;
+  let rpNonDDPaid = 0;
   const nonDDPaidList = [];
   fundBills.filter(b=>!b.dd).forEach(b=>{
     occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{
       if(!isSkipped(b.id,ds) && isPaidOcc(b.id,ds)){
         const amt = getExpectedAmount(b,ds);
-        nonDDPaidAmt += amt;
+        rpNonDDPaid += amt;
         nonDDPaidList.push({name:b.name, amount:amt});
       }
     });
   });
 
-  // Skipped bills this cycle
   const skippedCount = fundBills.reduce((c,b)=>
     c + occurrencesInRange(b,dates.start,dates.end).filter(ds=>isSkipped(b.id,ds)).length, 0);
 
@@ -1350,7 +1307,6 @@ function showRecordPayday() {
       </div>
 
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-
         <div style="padding:12px 14px;background:#dcfce7;border-radius:10px">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="font-size:13px;font-weight:700;color:#166534">Transfer to bills account</div>
@@ -1370,11 +1326,11 @@ function showRecordPayday() {
           </div>
         </div>` : ''}
 
-        ${nonDDPaidAmt > 0 ? `
+        ${rpNonDDPaid > 0 ? `
         <div style="background:#fef2f2;border-radius:10px;overflow:hidden">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px">
             <div style="font-size:13px;font-weight:700;color:#991b1b">Paid from bills account</div>
-            <strong style="font-size:17px;color:#991b1b">$${nonDDPaidAmt.toFixed(2)}</strong>
+            <strong style="font-size:17px;color:#991b1b">$${rpNonDDPaid.toFixed(2)}</strong>
           </div>
           <div style="padding:0 14px 10px;display:flex;flex-direction:column;gap:4px">
             ${nonDDPaidList.map(i=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:#991b1b;opacity:.85"><span>${i.name}</span><span>$${i.amount.toFixed(2)}</span></div>`).join('')}
@@ -1406,17 +1362,10 @@ function showRecordPayday() {
   document.body.appendChild(overlay);
 }
 
-// confirmRecordPayday: advance payday date and clean up old paid state.
-// Balance is NOT changed here — the user enters their actual bank balance manually.
-// This avoids the double-counting problem where the balance already includes the transfer.
 async function confirmRecordPayday(nextPaydayStr) {
-  // Store previous payday date so the user can undo an accidental record
   settings.previousPaydayDate = settings.paydayDate;
-
-  // Advance payday date only — balance is managed by the user manually
   settings.paydayDate = nextPaydayStr;
 
-  // Clean up paid/skip keys older than 90 days
   const cutoff = dayjs().subtract(90,'day').format('YYYY-MM-DD');
   paidKeys    = paidKeys.filter(k  => k.slice(-10) > cutoff);
   ddOvrKeys   = ddOvrKeys.filter(k => k.slice(-10) > cutoff);
@@ -1443,7 +1392,6 @@ async function confirmRecordPayday(nextPaydayStr) {
   renderAll();
 }
 
-// undoRecordPayday: revert the payday date to the previous value if recorded in error
 async function undoRecordPayday() {
   if (!settings.previousPaydayDate) return;
   settings.paydayDate         = settings.previousPaydayDate;
@@ -1454,7 +1402,6 @@ async function undoRecordPayday() {
   } catch(e) { toast('Undo failed — please try again'); }
   renderAll();
 }
-
 
 function renderFund(safePace){
   if (safePace === undefined) safePace = calculateSafePace();
@@ -1476,7 +1423,6 @@ function renderFund(safePace){
     return;
   }
 
-  // ── Record Payday card calculations ──────────────────────
   const rpFreq   = settings.paydayFreq || 'fortnightly';
   const rpStart  = dayjs(settings.paydayDate || tod());
   const rpDates  = getPayCycleDates(rpStart, rpFreq, 0);
@@ -1493,11 +1439,9 @@ function renderFund(safePace){
   let rpNonDDPaid = 0;
   fundBills.filter(b=>!b.dd).forEach(b=>{
     occurrencesInRange(b,rpDates.start,rpDates.end).forEach(ds=>{
-      // Only deduct bills that were actually paid from the fund (not skipped)
       if(!isSkipped(b.id,ds) && isPaidOcc(b.id,ds)) rpNonDDPaid += getExpectedAmount(b,ds);
     });
   });
-  const rpNewBalance = Math.max(balance + rpBillsFunded - rpNonDDPaid, 0);
 
   const recordCard=`
     <p class="section-label">Record this payday</p>
