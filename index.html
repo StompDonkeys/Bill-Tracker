@@ -249,6 +249,7 @@ let paidKeys  = [];
 let ddOvrKeys = [];
 let paidAmounts = {};
 let historyAmounts = {};
+let skippedKeys = []; // occKeys for occurrences skipped this cycle (no charge, no overdue)
 let settings  = {balance:0, balanceDate:tod(), paydayDate:tod(), paydayPay:0, paydayFreq:'fortnightly'};
 let uid = null, db = null, saveTimer = null, editingId = null;
 let cachedSafePace = 0; // updated in renderAll, shared with renderPayday
@@ -313,17 +314,18 @@ function getOverdueOccurrences(bill, targetDj) {
 }
 
 // ─── PAID STATE ───────────────────────────────────────────
-function occKey(id,ds)      { return `${id}_${ds}`; }
+function occKey(id,ds)        { return `${id}_${ds}`; }
+function isSkipped(id, ds)    { return skippedKeys.includes(occKey(id, ds)); }
+
 function isPaidOcc(id, ds) {
+  if (isSkipped(id, ds)) return true; // skipped = no charge = treated as handled
   const bill = bills.find(b => b.id === id);
   if (!bill) return false;
-  // DD bills are considered paid by default UNLESS the user has explicitly unchecked them (ddOvrKeys)
+  // DD bills: paid by default unless explicitly unchecked
   if (bill.dd) {
-    const k = occKey(id, ds);
-    if (ddOvrKeys.includes(k)) return false; // user marked DD as failed
-    return true; // auto-paid
+    if (ddOvrKeys.includes(occKey(id, ds))) return false;
+    return true;
   }
-  // Regular bills: paid only if amount paid meets expected amount
   return getAmtPaid(bill, ds) >= getExpectedAmount(bill, ds);
 }
 function getExpectedAmount(bill, ds) {
@@ -377,10 +379,11 @@ async function loadData(){
   bills=bs.docs.map(d=>({id:d.id,...d.data()}));
   if(ss.exists) settings={...settings,...ss.data()};
   if(ps.exists){
-    paidKeys=ps.data().paidKeys||[];
-    ddOvrKeys=ps.data().ddOvrKeys||[];
-    paidAmounts=ps.data().paidAmounts||{};
-    historyAmounts=ps.data().historyAmounts||{};
+    paidKeys       = ps.data().paidKeys       || [];
+    ddOvrKeys      = ps.data().ddOvrKeys      || [];
+    paidAmounts    = ps.data().paidAmounts    || {};
+    historyAmounts = ps.data().historyAmounts || {};
+    skippedKeys    = ps.data().skippedKeys    || [];
   }
   renderAll();
 }
@@ -395,7 +398,7 @@ function saveSettingsDebounced(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{await db.doc(`users/${uid}/meta/settings`).set(settings,{merge:true});toast('Saved ✓');},700);
 }
-async function savePaid(){ await db.doc(`users/${uid}/meta/paid`).set({paidKeys,ddOvrKeys,paidAmounts,historyAmounts}); toast('Saved ✓'); }
+async function savePaid(){ await db.doc(`users/${uid}/meta/paid`).set({paidKeys,ddOvrKeys,paidAmounts,historyAmounts,skippedKeys}); toast('Saved ✓'); }
 function toast(msg){ const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1600); }
 
 // ─── NAVIGATION ───────────────────────────────────────────
@@ -451,9 +454,9 @@ function calculateSafePace() {
     
     fundBills.forEach(b => {
       occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
-        // Always use full expected amount — the safePace must be stable and not fluctuate
-        // based on which bills happen to be checked off in the current cycle
-        cycleBillsAmt += getExpectedAmount(b, ds);
+        // Always use full expected amount — stable regardless of payment state.
+        // Skipped occurrences are free (no charge) so don't count them.
+        if (!isSkipped(b.id, ds)) cycleBillsAmt += getExpectedAmount(b, ds);
       });
     });
     
@@ -653,9 +656,9 @@ function renderProjection(safePace) {
     
     fundBills.forEach(b => {
       occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
-        // Full face value always — the Lookahead is a forecast, not a current-cycle tracker.
-        // Payment state is irrelevant here; every cycle assumes bills are paid in full.
-        cycleBillsTotal += getExpectedAmount(b, ds);
+        // Full face value always — forecast not affected by payment state.
+        // Skipped occurrences have no charge so don't include them.
+        if (!isSkipped(b.id, ds)) cycleBillsTotal += getExpectedAmount(b, ds);
       });
     });
 
@@ -882,8 +885,9 @@ async function removeBill(id){
   if(!confirm('Remove this bill?')) return;
   await deleteBillFS(id);
   bills=bills.filter(b=>b.id!==id);
-  paidKeys=paidKeys.filter(k=>!k.startsWith(id+'_'));
-  ddOvrKeys=ddOvrKeys.filter(k=>!k.startsWith(id+'_'));
+  paidKeys   = paidKeys.filter(k=>!k.startsWith(id+'_'));
+  ddOvrKeys  = ddOvrKeys.filter(k=>!k.startsWith(id+'_'));
+  skippedKeys= skippedKeys.filter(k=>!k.startsWith(id+'_'));
   Object.keys(paidAmounts).forEach(k => { if(k.startsWith(id+'_')) delete paidAmounts[k]; });
   Object.keys(historyAmounts).forEach(k => { if(k.startsWith(id+'_')) delete historyAmounts[k]; });
   await savePaid(); renderAll();
@@ -907,28 +911,30 @@ function renderPayday(){
     });
   });
 
-  const fundOccs=fnOccs.filter(o=>!o.bill.fundExclude);
-  const payOccs =fnOccs.filter(o=> o.bill.fundExclude);
-  const fundTotal=fundOccs.reduce((s,o)=>s+getExpectedAmount(o.bill, o.ds),0);
-  const payTotal =payOccs.reduce((s,o)=>s+getExpectedAmount(o.bill, o.ds),0);
-  const fundPaid =fundOccs.reduce((s,o)=>s+getAmtPaid(o.bill,o.ds),0);
-  const remain   =Math.max(fundTotal-fundPaid,0);
-  
-  const pendingDDTotal = fundOccs.filter(o => o.bill.dd).reduce((s, o) => {
-    const amtPaid = getAmtPaid(o.bill, o.ds);
-    return s + Math.max(getExpectedAmount(o.bill, o.ds) - amtPaid, 0);
-  }, 0);
+  const fundOccs  = fnOccs.filter(o=>!o.bill.fundExclude);
+  const payOccs   = fnOccs.filter(o=> o.bill.fundExclude);
+  // Exclude skipped occurrences from all financial totals
+  const activeFundOccs = fundOccs.filter(o=>!isSkipped(o.bill.id,o.ds));
+  const fundTotal = activeFundOccs.reduce((s,o)=>s+getExpectedAmount(o.bill,o.ds),0);
+  const payTotal  = payOccs.reduce((s,o)=>s+getExpectedAmount(o.bill,o.ds),0);
+  const fundPaid  = activeFundOccs.filter(o=>isPaidOcc(o.bill.id,o.ds)).reduce((s,o)=>s+getAmtPaid(o.bill,o.ds),0);
+  const remain    = Math.max(fundTotal-fundPaid,0);
 
-  const odTotal  =odOccs.reduce((s,o)=>{
-    const amtPaid = getAmtPaid(o.bill, o.ds);
-    return s + (getExpectedAmount(o.bill, o.ds) - amtPaid);
+  const pendingDDTotal = activeFundOccs.filter(o=>o.bill.dd).reduce((s,o)=>{
+    const amtPaid = getAmtPaid(o.bill,o.ds);
+    return s + Math.max(getExpectedAmount(o.bill,o.ds)-amtPaid,0);
   },0);
-  
-  const ddCount=fundOccs.filter(o=>o.bill.dd).length;
+  const odTotal = odOccs.reduce((s,o)=>{
+    const amtPaid = getAmtPaid(o.bill,o.ds);
+    return s + (getExpectedAmount(o.bill,o.ds)-amtPaid);
+  },0);
 
-  const ddFundedAmt   = fundOccs.filter(o=>o.bill.dd).reduce((s,o)=>s+getExpectedAmount(o.bill,o.ds),0);
-  const totalFunded   = cachedSafePace || 0;   // safe pace covers ALL forward spending incl. DDs
-  const billsFunded   = Math.max(totalFunded - ddFundedAmt, 0); // actual transfer to bills account
+  const ddCount      = activeFundOccs.filter(o=>o.bill.dd).length;
+  const skippedCount = fundOccs.filter(o=>isSkipped(o.bill.id,o.ds)).length;
+
+  const ddFundedAmt  = activeFundOccs.filter(o=>o.bill.dd).reduce((s,o)=>s+getExpectedAmount(o.bill,o.ds),0);
+  const totalFunded  = cachedSafePace || 0;
+  const billsFunded  = Math.max(totalFunded - ddFundedAmt, 0);
 
   const summaryHtml=`
     <div class="grid2">
@@ -941,8 +947,8 @@ function renderPayday(){
       <span style="font-size:12px;color:#888">Still to pay this cycle</span>
       <span style="font-size:14px;font-weight:700">$${remain.toFixed(2)}</span>
     </div>
-    ${ddCount>0?`<div class="banner banner-blue"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} running this cycle — tap to uncheck if payment fails</div>`:''}`;
-
+    ${ddCount>0?`<div class="banner banner-blue"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} running this cycle — tap to uncheck if payment fails</div>`:''}
+    ${skippedCount>0?`<div class="banner banner-grey"><i class="ti ti-ban" aria-hidden="true"></i>${skippedCount} bill${skippedCount>1?'s':''} skipped this cycle — not charged from fund</div>`:''}`;
   const odHtml=odOccs.length===0?'':
     `<p class="section-label" style="color:#991b1b">⚠ Overdue bills</p>
     <div class="banner banner-red"><i class="ti ti-alert-circle" aria-hidden="true"></i>$${odTotal.toFixed(2)} outstanding — included in fund shortfall</div>
@@ -971,25 +977,51 @@ function renderPayday(){
     }).join('')}</div>`;
 
   const occRow=o=>{
-    const expAmt = getExpectedAmount(o.bill, o.ds);
-    const amtPaid = getAmtPaid(o.bill, o.ds);
-    const fullyPaid = isPaidOcc(o.bill.id, o.ds);   // honours DD auto-check + paidKeys
-    const partiallyPaid = !fullyPaid && amtPaid > 0 && amtPaid < expAmt;
-    const itemId = `fnitem-${o.bill.id}-${o.ds}`;
-    return `<div class="fn-item ${fullyPaid?'paid':''}" id="${itemId}" style="${partiallyPaid ? 'border-left: 4px solid #639922;' : ''}">
+    const expAmt    = getExpectedAmount(o.bill, o.ds);
+    const amtPaid   = getAmtPaid(o.bill, o.ds);
+    const skipped   = isSkipped(o.bill.id, o.ds);
+    const fullyPaid = isPaidOcc(o.bill.id, o.ds);
+    const partial   = !fullyPaid && !skipped && amtPaid > 0 && amtPaid < expAmt;
+    const adjusted  = !skipped && historyAmounts[occKey(o.bill.id,o.ds)] !== undefined;
+    const itemId    = `fnitem-${o.bill.id}-${o.ds}`;
+
+    if (skipped) {
+      return `<div class="fn-item" id="${itemId}" style="opacity:0.45;border-style:dashed">
+        <div class="chk" style="background:#e5e7eb;border-color:#e5e7eb;color:#9ca3af;cursor:default">
+          <i class="ti ti-ban" style="font-size:13px" aria-hidden="true"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="fn-name" style="text-decoration:line-through;color:#9ca3af">
+            ${esc(o.bill.name)}<span class="badge" style="background:#f3f4f6;color:#9ca3af;font-size:10px">Skipped</span>
+          </div>
+          <div class="fn-due">${dayjs(o.ds).format('ddd D MMM')} · not charged this cycle</div>
+        </div>
+        <span style="font-size:13px;color:#9ca3af;flex-shrink:0">—</span>
+        <button class="btn-partial" onclick="showBillAdjust('${o.bill.id}','${o.ds}',${o.bill.amount},'${itemId}')" title="Adjust / un-skip" aria-label="Adjust">
+          <i class="ti ti-pencil" style="font-size:15px" aria-hidden="true"></i>
+        </button>
+      </div>`;
+    }
+
+    return `<div class="fn-item ${fullyPaid?'paid':''}" id="${itemId}" style="${partial?'border-left:4px solid #639922':''}">
       <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')"
+        title="${o.bill.dd?(fullyPaid?'DD — tap to uncheck if payment failed':'DD — tap to confirm'):''}"
         aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
         <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
       </button>
       <div style="flex:1;min-width:0">
-        <div class="fn-name">${esc(o.bill.name)}${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}</div>
+        <div class="fn-name">
+          ${esc(o.bill.name)}
+          ${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}
+          ${adjusted?`<span class="badge" style="background:#fef3c7;color:#92400e;font-size:10px">Adjusted</span>`:''}
+        </div>
         <div class="fn-due">
           Due ${dayjs(o.ds).format('ddd D MMM')}
-          ${partiallyPaid ? `· <span style="color:#639922;font-weight:600;">Paid $${amtPaid.toFixed(2)} of $${expAmt.toFixed(2)}</span>` : (o.bill.dd ? ' · direct debit scheduled' : '')}
+          ${partial?`· <span style="color:#639922;font-weight:600">Paid $${amtPaid.toFixed(2)} of $${expAmt.toFixed(2)}</span>`:(o.bill.dd?' · direct debit scheduled':'')}
         </div>
       </div>
-      <div class="fn-amt">$${(expAmt - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
-      <button class="btn-partial" onclick="showPartialInput('${o.bill.id}','${o.ds}',${expAmt},'${itemId}')" title="Record partial payment" aria-label="Enter amount paid">
+      <div class="fn-amt">$${(expAmt-amtPaid).toFixed(2)}${partial?' left':''}</div>
+      <button class="btn-partial" onclick="showBillAdjust('${o.bill.id}','${o.ds}',${o.bill.amount},'${itemId}')" title="Adjust amount or skip" aria-label="Adjust">
         <i class="ti ti-pencil" style="font-size:15px" aria-hidden="true"></i>
       </button>
     </div>`;
@@ -1038,58 +1070,127 @@ async function tapPaid(billId, ds) {
   try { await savePaid(); } catch(e) { console.error('savePaid failed:', e); }
 }
 
-// showPartialInput: toggle an inline amount-paid input under a bill row.
+// showBillAdjust: toggle an inline adjust panel under a bill row.
+// Lets the user: set the actual amount (and auto-mark paid), skip the occurrence, or reset.
 // Uses direct DOM manipulation so the panel doesn't re-render while the user is typing.
-function showPartialInput(billId, ds, expAmt, itemId) {
+function showBillAdjust(billId, ds, baseAmt, itemId) {
   const itemEl = document.getElementById(itemId);
   if (!itemEl) return;
   const existing = itemEl.querySelector('.fn-partial');
   if (existing) { existing.remove(); return; } // tap again to close
-  const bill = bills.find(b => b.id === billId);
-  const currentPaid = bill ? getAmtPaid(bill, ds) : 0;
+
+  const bill          = bills.find(b => b.id === billId);
+  const currentActual = bill ? getExpectedAmount(bill, ds) : baseAmt;
+  const alreadySkipped= isSkipped(billId, ds);
+  const k             = occKey(billId, ds);
+  const currentPaid   = bill ? getAmtPaid(bill, ds) : 0;
+
   const div = document.createElement('div');
   div.className = 'fn-partial';
+  div.style.cssText = 'flex-direction:column;gap:8px';
   div.innerHTML = `
-    <label>Amount paid ($)</label>
-    <input type="number" min="0" max="${expAmt.toFixed(2)}" step="0.01"
-           value="${currentPaid > 0 ? currentPaid.toFixed(2) : ''}"
-           placeholder="0.00" inputmode="decimal"
-           onkeydown="if(event.key==='Enter') savePartialAmt('${billId}','${ds}',${expAmt},this)">
-    <button class="p-save" onclick="savePartialAmt('${billId}','${ds}',${expAmt},this.previousElementSibling)">Save</button>
-    <button class="p-clear" onclick="clearPartialAmt('${billId}','${ds}','${itemId}')" title="Clear payment record">Clear</button>
-  `;
+    <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.05em;flex:0 0 100%">Adjust this occurrence</div>
+    <div style="display:flex;align-items:center;gap:8px;flex:0 0 100%">
+      <label style="font-size:12px;color:#888;flex-shrink:0">Actual amount ($)</label>
+      <input type="number" min="0" step="0.01" inputmode="decimal"
+             value="${currentActual !== baseAmt ? currentActual.toFixed(2) : ''}"
+             placeholder="${baseAmt.toFixed(2)}"
+             style="flex:1;min-width:0;height:36px;border:1px solid #e0e0d8;border-radius:8px;padding:0 10px;font-size:14px;background:#fafaf8;font-family:inherit;outline:none"
+             onkeydown="if(event.key==='Enter')setActualAmt('${billId}','${ds}',${baseAmt},this,'${itemId}')">
+      <button class="p-save" onclick="setActualAmt('${billId}','${ds}',${baseAmt},this.previousElementSibling,'${itemId}')">Set &amp; Pay</button>
+    </div>
+    ${!alreadySkipped && currentPaid > 0 && currentPaid < currentActual ? `
+    <div style="display:flex;align-items:center;gap:8px;flex:0 0 100%">
+      <label style="font-size:12px;color:#888;flex-shrink:0">Amount paid ($)</label>
+      <input type="number" min="0" step="0.01" inputmode="decimal"
+             value="${currentPaid.toFixed(2)}" placeholder="0.00"
+             style="flex:1;min-width:0;height:36px;border:1px solid #e0e0d8;border-radius:8px;padding:0 10px;font-size:14px;background:#fafaf8;font-family:inherit;outline:none"
+             id="partialInput-${k}"
+             onkeydown="if(event.key==='Enter')savePartialFromAdjust('${billId}','${ds}','${itemId}')">
+      <button class="p-save" onclick="savePartialFromAdjust('${billId}','${ds}','${itemId}')">Save partial</button>
+    </div>` : ''}
+    <div style="display:flex;gap:8px;flex:0 0 100%">
+      <button onclick="skipOccurrence('${billId}','${ds}','${itemId}')"
+        style="flex:1;height:34px;border:1px solid ${alreadySkipped?'#639922':'#e0e0d8'};border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:${alreadySkipped?'#639922':'#fafaf8'};color:${alreadySkipped?'#fff':'#555'}">
+        ${alreadySkipped?'✓ Skipped — tap to restore':'⊘ Skip this occurrence'}
+      </button>
+      <button class="p-clear" onclick="clearAdjustments('${billId}','${ds}','${itemId}')">Reset</button>
+    </div>`;
   itemEl.appendChild(div);
   div.querySelector('input').focus();
   div.querySelector('input').select();
 }
 
-// savePartialAmt: record how much was actually paid for a specific bill occurrence.
-// If amount >= expected → mark as fully paid. If 0 → clear. Otherwise → partial.
-async function savePartialAmt(billId, ds, expAmt, inputEl) {
-  const amount = parseFloat(inputEl.value) || 0;
+// setActualAmt: set the actual bill amount for this occurrence and mark as fully paid.
+// Updates historyAmounts so getExpectedAmount returns the new value everywhere.
+async function setActualAmt(billId, ds, baseAmt, inputEl, itemId) {
+  const rawVal = parseFloat(inputEl.value);
+  const amount = isNaN(rawVal) ? baseAmt : rawVal;
   const k = occKey(billId, ds);
+  if (amount <= 0) {
+    delete historyAmounts[k];
+    delete paidAmounts[k];
+    paidKeys = paidKeys.filter(x => x !== k);
+  } else {
+    historyAmounts[k] = amount;  // sets the new expected amount for this occurrence
+    delete paidAmounts[k];       // clear any partial — full amount is now expected
+    if (!paidKeys.includes(k)) paidKeys = [...paidKeys, k]; // mark as fully paid
+    skippedKeys = skippedKeys.filter(x => x !== k); // un-skip if it was skipped
+  }
+  renderPayday();
+  try { await savePaid(); } catch(e) { console.error('setActualAmt failed:', e); }
+}
+
+// savePartialFromAdjust: save a partial payment amount from the adjust panel.
+async function savePartialFromAdjust(billId, ds, itemId) {
+  const inputEl = document.getElementById(`partialInput-${occKey(billId,ds)}`);
+  if (!inputEl) return;
+  const amount  = parseFloat(inputEl.value) || 0;
+  const bill    = bills.find(b => b.id === billId);
+  const expAmt  = bill ? getExpectedAmount(bill, ds) : 0;
+  const k       = occKey(billId, ds);
   if (amount <= 0) {
     delete paidAmounts[k];
     paidKeys = paidKeys.filter(x => x !== k);
   } else if (amount >= expAmt) {
-    paidAmounts[k] = expAmt;
+    delete paidAmounts[k];
     if (!paidKeys.includes(k)) paidKeys = [...paidKeys, k];
   } else {
     paidAmounts[k] = amount;
-    paidKeys = paidKeys.filter(x => x !== k); // partial = not yet fully paid
+    paidKeys = paidKeys.filter(x => x !== k);
   }
   renderPayday();
-  try { await savePaid(); } catch(e) { console.error('savePartialAmt failed:', e); }
+  try { await savePaid(); } catch(e) { console.error('savePartialFromAdjust failed:', e); }
 }
 
-// clearPartialAmt: remove any payment record for an occurrence, resetting it to unpaid.
-async function clearPartialAmt(billId, ds, itemId) {
+// skipOccurrence: toggle skip state. Skipped = no charge, no overdue, not in fund outflow.
+async function skipOccurrence(billId, ds, itemId) {
   const k = occKey(billId, ds);
-  delete paidAmounts[k];
-  paidKeys = paidKeys.filter(x => x !== k);
+  if (skippedKeys.includes(k)) {
+    skippedKeys = skippedKeys.filter(x => x !== k); // un-skip
+  } else {
+    skippedKeys = [...skippedKeys, k];
+    paidKeys    = paidKeys.filter(x => x !== k);    // clear paid state
+    ddOvrKeys   = ddOvrKeys.filter(x => x !== k);   // clear DD override
+    delete paidAmounts[k];
+  }
   renderPayday();
-  try { await savePaid(); } catch(e) { console.error('clearPartialAmt failed:', e); }
+  try { await savePaid(); } catch(e) { console.error('skipOccurrence failed:', e); }
 }
+
+// clearAdjustments: reset all adjustments for an occurrence back to default state.
+async function clearAdjustments(billId, ds, itemId) {
+  const k = occKey(billId, ds);
+  delete historyAmounts[k];
+  delete paidAmounts[k];
+  paidKeys    = paidKeys.filter(x => x !== k);
+  ddOvrKeys   = ddOvrKeys.filter(x => x !== k);
+  skippedKeys = skippedKeys.filter(x => x !== k);
+  renderPayday();
+  try { await savePaid(); } catch(e) { console.error('clearAdjustments failed:', e); }
+}
+
+
 
 // togglePayFromPay: expand/collapse the paid-from-pay breakdown in the overview
 function togglePayFromPay() {
@@ -1291,13 +1392,17 @@ function showRecordPayday() {
 
 // confirmRecordPayday: apply balance update, advance payday date, clean up old paid state
 async function confirmRecordPayday(newBalance, nextPaydayStr) {
-  // Remove paid keys for dates more than 90 days old (prevents indefinite accumulation)
+  // Remove paid/skip keys for dates more than 90 days old (prevents indefinite accumulation)
   const cutoff = dayjs().subtract(90,'day').format('YYYY-MM-DD');
-  paidKeys  = paidKeys.filter(k  => k.slice(-10) > cutoff);
-  ddOvrKeys = ddOvrKeys.filter(k => k.slice(-10) > cutoff);
+  paidKeys    = paidKeys.filter(k  => k.slice(-10) > cutoff);
+  ddOvrKeys   = ddOvrKeys.filter(k => k.slice(-10) > cutoff);
+  skippedKeys = skippedKeys.filter(k=> k.slice(-10) > cutoff);
   const cleanAmounts = {};
   Object.entries(paidAmounts).forEach(([k,v]) => { if(k.slice(-10) > cutoff) cleanAmounts[k]=v; });
   paidAmounts = cleanAmounts;
+  const cleanHistory = {};
+  Object.entries(historyAmounts).forEach(([k,v]) => { if(k.slice(-10) > cutoff) cleanHistory[k]=v; });
+  historyAmounts = cleanHistory;
 
   // Update balance, advance payday, stamp today as the new reconciliation date
   settings.balance     = newBalance;
@@ -1349,14 +1454,17 @@ function renderFund(safePace){
 
   let rpDDAmt = 0;
   fundBills.filter(b=>b.dd).forEach(b=>{
-    occurrencesInRange(b,rpDates.start,rpDates.end).forEach(ds=>{rpDDAmt+=getExpectedAmount(b,ds);});
+    occurrencesInRange(b,rpDates.start,rpDates.end).forEach(ds=>{
+      if(!isSkipped(b.id,ds)) rpDDAmt+=getExpectedAmount(b,ds);
+    });
   });
   const rpBillsFunded = Math.max(safePace - rpDDAmt, 0);
 
   let rpNonDDPaid = 0;
   fundBills.filter(b=>!b.dd).forEach(b=>{
     occurrencesInRange(b,rpDates.start,rpDates.end).forEach(ds=>{
-      if(isPaidOcc(b.id,ds)) rpNonDDPaid += getExpectedAmount(b,ds);
+      // Only deduct bills that were actually paid from the fund (not skipped)
+      if(!isSkipped(b.id,ds) && isPaidOcc(b.id,ds)) rpNonDDPaid += getExpectedAmount(b,ds);
     });
   });
   const rpNewBalance = Math.max(balance + rpBillsFunded - rpNonDDPaid, 0);
