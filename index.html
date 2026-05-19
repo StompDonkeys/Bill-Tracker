@@ -165,7 +165,7 @@
     .text-r { color: #ef4444; }
 
     table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 480px; }
-    th { color: #666; font-weight: 700; border-bottom: 2px solid #e8e8e0; th: padding: 8px 4px; }
+    th { color: #666; font-weight: 700; border-bottom: 2px solid #e8e8e0; padding: 8px 4px; }
     tr { border-bottom: 1px solid #f0f0e8; }
     .btn-export { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:#1e40af; color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; transition:background 0.15s; }
     .btn-export:hover { background:#1d3a9f; }
@@ -325,13 +325,14 @@ function isSkipped(id, ds)    { return skippedKeys.includes(occKey(id, ds)); }
 function isPaidOcc(id, ds) {
   if (isSkipped(id, ds)) return true;
   const bill = bills.find(b => b.id === id);
-  if (!b || !bill) return false;
+  if (!bill) return false;
   if (bill.dd) {
     if (ddOvrKeys.includes(occKey(id, ds))) return false;
     return true;
   }
   return getAmtPaid(bill, ds) >= getExpectedAmount(bill, ds);
 }
+// Modified to use the new dynamic history snapshot values cleanly
 function getExpectedAmount(bill, ds) {
   const k = occKey(bill.id, ds);
   return historyAmounts[k] !== undefined ? historyAmounts[k] : bill.amount;
@@ -438,7 +439,7 @@ function calculateSafePace() {
   const balance = settings.balance || 0;
   const simStart = dayjs(settings.paydayDate || tod());
   const freq = settings.paydayFreq || 'fortnightly';
-  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52);
+  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52); // Exactly 2 years for consistent lookahead modeling
   
   let odAmt = 0;
   fundBills.forEach(b => {
@@ -662,9 +663,6 @@ function renderProjection(safePace) {
     if (k === 1) cycleBillsTotal += odAmt;
 
     const openingBalance = currentSimBalance;
-    
-    // Core structural check: if balance was verified on or after this cycle's date, 
-    // we assume your manual statement update already encapsulates that day's contribution transfer.
     const isBalanceAlreadyUpdated = k === 1 && (balanceDate.isAfter(dates.start) || balanceDate.isSame(dates.start, 'day'));
     const appliedContribution = isBalanceAlreadyUpdated ? 0 : safePace;
 
@@ -1067,20 +1065,6 @@ function renderPayday(){
     <div class="fn-list">${sortO(payOccs).map(occRow).join('')}</div>`;
 
   document.getElementById('panel-payday').innerHTML=summaryHtml+odHtml+fundSection+paySection;
-}
-
-async function tapPaid(billId, ds) {
-  const k = occKey(billId, ds);
-  const bill = bills.find(b => b.id === billId);
-  if (!bill) return;
-
-  if (bill.dd) {
-    ddOvrKeys = ddOvrKeys.includes(k) ? ddOvrKeys.filter(x => x !== k) : [...ddOvrKeys, k];
-  } else {
-    paidKeys = paidKeys.includes(k) ? paidKeys.filter(x => x !== k) : [...paidKeys, k];
-  }
-  renderPayday();
-  try { await savePaid(); } catch(e) { console.error('savePaid failed:', e); }
 }
 
 function showBillAdjust(billId, ds, baseAmt, itemId) {
