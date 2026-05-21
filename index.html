@@ -10,186 +10,186 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Bills">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.14.0/dist/tabler-icons.min.css">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #f5f5f0; color: #1a1a18; overflow-x: hidden; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#f5f5f0;color:#1a1a18;overflow-x:hidden}
 
-    /* LOGIN */
-    #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; text-align: center; }
-    .login-icon  { width: 80px; height: 80px; background: #639922; border-radius: 22px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 40px; }
-    .login-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-    .login-sub   { font-size: 15px; color: #666; line-height: 1.5; max-width: 280px; margin: 0 auto 2rem; }
-    .btn-google  { display: flex; align-items: center; gap: 12px; padding: 13px 24px; background: #fff; border: 1px solid #ddd; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: box-shadow 0.2s; }
-    .btn-google:hover { box-shadow: 0 2px 10px rgba(0,0,0,.12); }
-    .google-logo { width: 20px; height: 20px; }
-    .login-error { margin-top: 12px; font-size: 13px; color: #ef4444; }
+    /* ── LOGIN ── */
+    #loginScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;text-align:center}
+    .login-icon{width:80px;height:80px;background:#639922;border-radius:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:40px}
+    .login-title{font-size:28px;font-weight:700;margin-bottom:8px}
+    .login-sub{font-size:15px;color:#666;line-height:1.5;max-width:280px;margin:0 auto 2rem}
+    .btn-google{display:flex;align-items:center;gap:12px;padding:13px 24px;background:#fff;border:1px solid #ddd;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:box-shadow .2s}
+    .btn-google:hover{box-shadow:0 2px 10px rgba(0,0,0,.12)}
+    .google-logo{width:20px;height:20px}
+    .login-error{margin-top:12px;font-size:13px;color:#ef4444}
 
-    /* APP SHELL */
-    #mainApp { display: none; min-height: 100vh; }
-    .topbar  { position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 1px solid #e8e8e0; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
-    .topbar-title { font-size: 17px; font-weight: 700; color: #639922; }
-    .topbar-right { display: flex; align-items: center; gap: 8px; }
-    .user-avatar  { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; display: none; }
-    .btn-signout  { background: none; border: none; cursor: pointer; color: #aaa; font-size: 13px; font-family: inherit; padding: 4px 8px; }
-    .btn-signout:hover { color: #333; }
-    .scroll-content { padding: 16px 16px calc(80px + env(safe-area-inset-bottom, 0px)); }
-    .panel { display: none; } .panel.active { display: block; }
-    .tabbar      { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: #fff; border-top: 1px solid #e8e8e0; display: flex; padding-bottom: env(safe-area-inset-bottom, 0px); }
-    .tabbar-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 0 8px; gap: 3px; background: none; border: none; cursor: pointer; color: #bbb; font-size: 10px; font-weight: 600; font-family: inherit; transition: color 0.15s; }
-    .tabbar-item i { font-size: 22px; }
-    .tabbar-item.active { color: #639922; }
+    /* ── APP SHELL ── */
+    #mainApp{display:none;min-height:100vh}
+    .topbar{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid #e8e8e0;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+    .topbar-title{font-size:17px;font-weight:700;color:#639922}
+    .topbar-right{display:flex;align-items:center;gap:8px}
+    .user-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;display:none}
+    .btn-signout{background:none;border:none;cursor:pointer;color:#aaa;font-size:13px;font-family:inherit;padding:4px 8px}
+    .scroll-content{padding:16px 16px calc(80px + env(safe-area-inset-bottom,0px))}
+    .panel{display:none}.panel.active{display:block}
+    .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-top:1px solid #e8e8e0;display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+    .tabbar-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 8px;gap:3px;background:none;border:none;cursor:pointer;color:#bbb;font-size:10px;font-weight:600;font-family:inherit;transition:color .15s}
+    .tabbar-item i{font-size:22px}
+    .tabbar-item.active{color:#639922}
 
-    /* COMPONENTS */
-    .card          { background: #fff; border-radius: 16px; border: 1px solid #e8e8e0; padding: 16px; margin-bottom: 12px; }
-    .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #aaa; margin: 16px 0 8px; }
-    .section-label:first-child { margin-top: 0; }
-    .field        { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
-    .field:last-child { margin-bottom: 0; }
-    .field label  { font-size: 12px; font-weight: 700; color: #555; }
-    .field input, .field select { width: 100%; min-width: 0; height: 44px; border: 1px solid #e0e0d8; border-radius: 10px; padding: 0 12px; font-size: 15px; background: #fafaf8; color: #1a1a18; font-family: inherit; outline: none; -webkit-appearance: none; appearance: none; }
-    .field input:focus, .field select:focus { border-color: #639922; background: #fff; }
-    .field-row    { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    /* ── SHARED COMPONENTS ── */
+    .card{background:#fff;border-radius:16px;border:1px solid #e8e8e0;padding:16px;margin-bottom:12px}
+    .slabel{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#aaa;margin:16px 0 8px}
+    .slabel:first-child{margin-top:0}
+    .empty{text-align:center;padding:3rem 1rem;color:#bbb;font-size:14px}
+    .empty i{font-size:38px;display:block;margin-bottom:10px}
+    .field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+    .field:last-child{margin-bottom:0}
+    .field label{font-size:12px;font-weight:700;color:#555}
+    .field input,.field select{width:100%;min-width:0;height:44px;border:1px solid #e0e0d8;border-radius:10px;padding:0 12px;font-size:15px;background:#fafaf8;color:#1a1a18;font-family:inherit;outline:none;-webkit-appearance:none;appearance:none}
+    .field input:focus,.field select:focus{border-color:#639922;background:#fff}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .toggle-row{display:flex;align-items:center;gap:12px;padding:12px;background:#fafaf8;border-radius:10px;border:1px solid #e8e8e0;margin-bottom:10px}
+    .toggle-label{flex:1}
+    .toggle-label strong{font-size:14px;font-weight:600;display:block}
+    .toggle-label span{font-size:12px;color:#888}
+    .toggle{position:relative;width:46px;height:26px;flex-shrink:0}
+    .toggle input{opacity:0;width:0;height:0}
+    .slider{position:absolute;inset:0;background:#ddd;border-radius:26px;cursor:pointer;transition:background .2s}
+    .slider::before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+    .toggle input:checked+.slider{background:#639922}
+    .toggle input:checked+.slider::before{transform:translateX(20px)}
+    .btn-primary{width:100%;height:48px;background:#639922;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,transform .1s;margin-top:4px}
+    .btn-primary:hover{background:#527f1c}
+    .btn-primary:active{transform:scale(.98)}
+    .btn-primary:disabled{background:#bbb;cursor:not-allowed;transform:none}
+    .badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px}
+    .badge-dd{background:#dbeafe;color:#1e40af}
+    .badge-exc{background:#f3f4f6;color:#666}
+    .badge-adj{background:#fef3c7;color:#92400e}
+    .badge-skip{background:#f3f4f6;color:#9ca3af}
 
-    .toggle-row   { display: flex; align-items: center; gap: 12px; padding: 12px; background: #fafaf8; border-radius: 10px; border: 1px solid #e8e8e0; margin-bottom: 10px; }
-    .toggle-row:last-child { margin-bottom: 0; }
-    .toggle-label { flex: 1; }
-    .toggle-label strong { font-size: 14px; font-weight: 600; display: block; }
-    .toggle-label span   { font-size: 12px; color: #888; }
-    .toggle  { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .slider  { position: absolute; inset: 0; background: #ddd; border-radius: 26px; cursor: pointer; transition: background 0.2s; }
-    .slider::before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
-    .toggle input:checked + .slider { background: #639922; }
-    .toggle input:checked + .slider::before { transform: translateX(20px); }
+    /* ── TODAY TAB ── */
+    .send-btn{width:100%;height:50px;background:#639922;color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px;transition:background .15s}
+    .send-btn:hover{background:#527f1c}
+    .setup-card{background:#fff;border:2px dashed #e0e0d8;border-radius:16px;padding:20px;margin-bottom:12px;text-align:center}
+    .setup-card p{color:#888;font-size:14px;margin-bottom:14px;line-height:1.5}
+    .transfer-card{background:#fff;border:2px solid #639922;border-radius:16px;padding:16px;margin-bottom:14px}
+    .transfer-main{font-size:14px;color:#555;margin-bottom:4px}
+    .transfer-amount{font-size:38px;font-weight:700;color:#639922;line-height:1;margin-bottom:12px}
+    .transfer-rows{display:flex;flex-direction:column;gap:8px;border-top:1px solid #e8e8e0;padding-top:12px}
+    .transfer-row{display:flex;justify-content:space-between;align-items:center;font-size:14px}
+    .transfer-row .label{color:#555}
+    .transfer-row .val{font-weight:700}
+    .dd-breakdown{margin-top:6px;padding:8px 12px;background:#f5f5f0;border-radius:8px;display:flex;flex-direction:column;gap:4px}
+    .dd-breakdown-row{display:flex;justify-content:space-between;font-size:12px;color:#666}
+    .progress-wrap{background:#e8e8e0;border-radius:6px;height:6px;overflow:hidden;margin:4px 0 2px}
+    .progress-fill{height:100%;border-radius:6px;background:#639922;transition:width .4s}
+    .progress-label{font-size:12px;color:#888;margin-bottom:10px}
 
-    .btn-primary  { width: 100%; height: 48px; background: #639922; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.15s, transform 0.1s; margin-top: 4px; }
-    .btn-primary:hover  { background: #527f1c; }
-    .btn-primary:active { transform: scale(0.98); }
-    .btn-primary:disabled { background: #bbb; cursor: not-allowed; transform: none; }
+    /* bill check rows */
+    .check-section-header{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#aaa;margin:14px 0 6px;display:flex;align-items:center;justify-content:space-between}
+    .check-list{display:flex;flex-direction:column;gap:7px;margin-bottom:6px}
+    .check-row{background:#fff;border:1px solid #e8e8e0;border-radius:13px;padding:11px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;transition:opacity .2s}
+    .check-row.done{opacity:.42}
+    .check-row.done .check-name{text-decoration:line-through;color:#aaa}
+    .check-row.overdue{border-color:#fecaca}
+    .check-row.skipped{opacity:.45;border-style:dashed}
+    .check-row.frompay{background:#fafaf8;border-color:#f0f0e8}
+    .check-circle{width:26px;height:26px;border-radius:50%;border:2px solid #ddd;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;color:transparent}
+    .check-circle.on{background:#639922;border-color:#639922;color:#fff}
+    .check-circle.ban{background:#e5e7eb;border-color:#e5e7eb;color:#9ca3af;cursor:default}
+    .check-info{flex:1;min-width:0}
+    .check-name{font-size:14px;font-weight:600;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+    .check-sub{font-size:11px;color:#888;margin-top:2px}
+    .check-amt{font-size:14px;font-weight:700;flex-shrink:0}
+    .check-pencil{background:none;border:none;cursor:pointer;color:#ccc;padding:4px;border-radius:6px;display:flex;align-items:center;flex-shrink:0;transition:color .15s,background .15s}
+    .check-pencil:hover{color:#639922;background:#f0fdf4}
+    .fn-partial{flex:0 0 100%;display:flex;align-items:center;gap:8px;padding-top:10px;margin-top:4px;border-top:1px solid #f0f0e8;flex-wrap:wrap}
+    .fn-partial label{font-size:12px;color:#888;flex-shrink:0}
+    .fn-partial input{flex:1;min-width:100px;height:36px;border:1px solid #e0e0d8;border-radius:8px;padding:0 10px;font-size:14px;background:#fafaf8;color:#1a1a18;font-family:inherit;outline:none}
+    .fn-partial input:focus{border-color:#639922;background:#fff}
+    .fn-partial .p-save{height:36px;padding:0 14px;background:#639922;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0}
+    .fn-partial .p-save:hover{background:#527f1c}
+    .fn-partial .p-clear{height:36px;padding:0 10px;background:none;color:#aaa;border:1px solid #e0e0d8;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;flex-shrink:0}
+    .fn-partial .p-clear:hover{color:#ef4444;border-color:#fecaca}
+    .record-btn{width:100%;height:52px;background:#1e40af;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;transition:background .15s}
+    .record-btn:hover{background:#1d3a9f}
+    .undo-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;margin-top:8px;font-size:13px;color:#92400e}
+    .undo-bar button{background:#92400e;color:#fff;border:none;border-radius:7px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+    .large-bills-card{border-left:3px solid #ef4444;padding-left:12px;margin-bottom:12px}
+    .large-bill-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0e8;font-size:13px}
+    .large-bill-row:last-child{border-bottom:none}
 
-    .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 12px; }
-    .grid2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 12px; }
-    .metric   { background: #f5f5f0; border-radius: 12px; padding: 12px; }
-    .m-label  { font-size: 11px; color: #888; margin-bottom: 4px; }
-    .m-value  { font-size: 17px; font-weight: 700; }
-    .m-sub    { font-size: 11px; color: #888; margin-top: 2px; }
+    /* ── FUND TAB ── */
+    .balance-card{background:#fff;border-radius:16px;border:1px solid #e8e8e0;padding:16px;margin-bottom:12px}
+    .balance-input-row{display:flex;gap:10px;align-items:flex-end}
+    .balance-input-row .field{flex:1;margin-bottom:0}
+    .balance-save-btn{height:44px;padding:0 18px;background:#639922;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;transition:background .15s}
+    .balance-save-btn:hover{background:#527f1c}
+    .status-card{background:#fff;border-radius:16px;border:1px solid #e8e8e0;padding:16px;margin-bottom:12px}
+    .status-main{font-size:32px;font-weight:700;color:#639922;margin:4px 0 8px}
+    .status-sub{font-size:13px;color:#666;margin-bottom:4px}
+    .status-rows{display:flex;flex-direction:column;gap:7px;border-top:1px solid #e8e8e0;padding-top:12px;margin-top:4px}
+    .status-row{display:flex;justify-content:space-between;font-size:13px}
+    .status-row .lbl{color:#888}
+    .status-row .val{font-weight:600}
+    .collapsible-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border-radius:12px;border:1px solid #e8e8e0;cursor:pointer;margin-bottom:4px;font-size:14px;font-weight:600;color:#333;user-select:none}
+    .collapsible-header i{font-size:18px;color:#aaa;transition:transform .2s}
+    .collapsible-header.open i{transform:rotate(180deg)}
+    .collapsible-body{display:none;margin-bottom:12px}
+    .collapsible-body.open{display:block}
+    .settings-field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 
-    .bill-list { display: flex; flex-direction: column; gap: 8px; }
-    .bill-item { background: #fff; border: 1px solid #e8e8e0; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; animation: si 0.18s ease; }
-    @keyframes si { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
-    .bill-cat  { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-    .bill-info { flex: 1; min-width: 0; }
-    .bill-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-    .bill-meta { font-size: 12px; color: #888; margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .badge     { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
-    .badge-dd  { background: #dbeafe; color: #1e40af; }
-    .badge-exc { background: #f3f4f6; color: #555; }
-    .bill-right{ text-align: right; flex-shrink: 0; }
-    .bill-amt  { font-size: 15px; font-weight: 700; }
-    .bill-fn   { font-size: 11px; color: #888; }
-    .btn-del   { background: none; border: none; cursor: pointer; color: #ccc; padding: 6px; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s, background 0.15s; }
-    .btn-del:hover { color: #ef4444; background: #fef2f2; }
-    .btn-edit   { background: none; border: none; cursor: pointer; color: #ccc; padding: 6px; border-radius: 8px; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s, background 0.15s; }
-    .btn-edit:hover { color: #639922; background: #f0fdf4; }
+    /* lookahead table */
+    .lookahead-wrap{overflow-x:auto}
+    table.la{width:100%;border-collapse:collapse;font-size:12px;min-width:360px}
+    table.la th{padding:7px 4px;text-align:right;color:#888;font-weight:700;border-bottom:2px solid #e8e8e0}
+    table.la th:first-child{text-align:left}
+    table.la td{padding:8px 4px;text-align:right;border-bottom:1px solid #f0f0e8}
+    table.la td:first-child{text-align:left;font-weight:600;color:#333}
+    table.la tr.neg{background:#fef2f2}
 
-    .empty { text-align: center; padding: 2.5rem 1rem; color: #bbb; font-size: 14px; }
-    .empty i { font-size: 38px; display: block; margin-bottom: 8px; }
-    .error-msg { font-size: 12px; color: #ef4444; margin: 6px 0; display: none; }
+    /* ── BILLS TAB ── */
+    .sort-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+    .sort-btn{height:30px;padding:0 12px;border:1px solid #e0e0d8;border-radius:8px;background:#fafaf8;color:#666;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s}
+    .sort-btn.active{background:#639922;color:#fff;border-color:#639922}
+    .bill-list{display:flex;flex-direction:column;gap:8px}
+    .bill-item{background:#fff;border:1px solid #e8e8e0;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+    .bill-cat{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .bill-info{flex:1;min-width:0}
+    .bill-name{font-size:14px;font-weight:600;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+    .bill-meta{font-size:11px;color:#888;margin-top:2px}
+    .bill-right{text-align:right;flex-shrink:0}
+    .bill-amt{font-size:14px;font-weight:700}
+    .bill-fn{font-size:11px;color:#888}
+    .btn-del{background:none;border:none;cursor:pointer;color:#ccc;padding:5px;border-radius:7px;display:flex;align-items:center;flex-shrink:0;transition:color .15s,background .15s}
+    .btn-del:hover{color:#ef4444;background:#fef2f2}
+    .btn-edit-sm{background:none;border:none;cursor:pointer;color:#ccc;padding:5px;border-radius:7px;display:flex;align-items:center;flex-shrink:0;transition:color .15s,background .15s}
+    .btn-edit-sm:hover{color:#639922;background:#f0fdf4}
+    .error-msg{font-size:12px;color:#ef4444;margin:6px 0;display:none}
 
-    .prog-wrap { background: #e8e8e0; border-radius: 6px; height: 8px; overflow: hidden; margin-bottom: 12px; }
-    .prog-fill { height: 100%; border-radius: 6px; background: #639922; transition: width 0.4s; }
-    .prog-fill.over { background: #ef4444; }
-
-    .fn-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-    .fn-item { background: #fff; border: 1px solid #e8e8e0; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; transition: opacity 0.2s; flex-wrap: wrap; }
-    .fn-item.paid { opacity: 0.45; }
-    .fn-item.paid .fn-name { text-decoration: line-through; }
-    .fn-item.overdue { border-color: #fecaca; }
-    .fn-name { font-size: 14px; font-weight: 600; flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-    .fn-due  { font-size: 12px; color: #888; }
-    .fn-amt  { font-size: 14px; font-weight: 700; flex-shrink: 0; }
-    .chk     { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ddd; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; color: transparent; }
-    .chk.on  { background: #639922; border-color: #639922; color: #fff; }
-    .btn-partial { background: none; border: none; cursor: pointer; color: #ccc; padding: 4px 5px; border-radius: 6px; display: flex; align-items: center; flex-shrink: 0; transition: color 0.15s, background 0.15s; }
-    .btn-partial:hover { color: #639922; background: #f0fdf4; }
-    .fn-partial { flex: 0 0 100%; display: flex; align-items: center; gap: 8px; padding-top: 10px; margin-top: 4px; border-top: 1px solid #f0f0e8; }
-    .fn-partial label { font-size: 12px; color: #888; flex-shrink: 0; }
-    .fn-partial input { flex: 1; min-width: 0; height: 36px; border: 1px solid #e0e0d8; border-radius: 8px; padding: 0 10px; font-size: 14px; background: #fafaf8; color: #1a1a18; font-family: inherit; outline: none; }
-    .fn-partial input:focus { border-color: #639922; background: #fff; }
-    .fn-partial .p-save { height: 36px; padding: 0 14px; background: #639922; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; flex-shrink: 0; }
-    .fn-partial .p-save:hover { background: #527f1c; }
-    .fn-partial .p-clear { height: 36px; padding: 0 10px; background: none; color: #aaa; border: 1px solid #e0e0d8; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: inherit; flex-shrink: 0; }
-    .fn-partial .p-clear:hover { color: #ef4444; border-color: #fecaca; }
-
-    .banner      { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; padding: 9px 12px; border-radius: 10px; margin-bottom: 10px; }
-    .banner-red  { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    .banner-blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-    .banner-grey { background: #f3f4f6; color: #555; border: 1px solid #e5e7eb; }
-
-    .hero        { background: #639922; border-radius: 16px; padding: 22px; text-align: center; color: #fff; margin-bottom: 12px; }
-    .hero-label  { font-size: 12px; opacity: .8; margin-bottom: 4px; }
-    .hero-amount { font-size: 40px; font-weight: 700; }
-    .hero-sub    { font-size: 12px; opacity: .75; margin-top: 4px; line-height: 1.4; }
-    .cu-sel  { display: flex; gap: 6px; margin-bottom: 12px; }
-    .cu-btn  { flex: 1; height: 38px; border: 1px solid #e0e0d8; border-radius: 10px; background: #fafaf8; color: #888; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.15s; }
-    .cu-btn.on { background: #639922; color: #fff; border-color: #639922; }
-    .spill   { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
-    .sp-g { background: #dcfce7; color: #166534; }
-    .sp-a { background: #fef3c7; color: #92400e; }
-    .sp-r { background: #fee2e2; color: #991b1b; }
-
-    .lib-row  { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0e8; }
-    .lib-row:last-child { border-bottom: none; }
-    .lib-info { flex: 1; min-width: 0; }
-    .lib-name { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-    .lib-sub  { font-size: 11px; color: #888; margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .lib-bw   { width: 60px; height: 4px; background: #e8e8e0; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
-    .lib-b    { height: 100%; background: #639922; border-radius: 4px; }
-    .lib-r    { text-align: right; flex-shrink: 0; }
-    .lib-amt  { font-size: 13px; font-weight: 700; }
-    .lib-pct  { font-size: 11px; color: #888; }
-
-    .tl-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f0f0e8; }
-    .tl-row:last-child { border-bottom: none; }
-    .tl-fn  { font-size: 12px; color: #888; width: 130px; flex-shrink: 0; }
-    .tl-bw  { flex: 1; height: 6px; background: #e8e8e0; border-radius: 6px; overflow: hidden; }
-    .tl-b   { height: 100%; border-radius: 6px; background: #639922; }
-    .tl-b.s { background: #9FE1CB; }
-    .tl-amt { font-size: 13px; font-weight: 700; width: 72px; text-align: right; flex-shrink: 0; }
-    .tl-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
-    .tag-cu { background: #dcfce7; color: #166534; }
-    .tag-st { background: #e0f2fe; color: #075985; }
-    .text-r { color: #ef4444; }
-
-    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 480px; }
-    th { color: #666; font-weight: 700; border-bottom: 2px solid #e8e8e0; padding: 8px 4px; }
-    tr { border-bottom: 1px solid #f0f0e8; }
-    .btn-export { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:#1e40af; color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; transition:background 0.15s; }
-    .btn-export:hover { background:#1d3a9f; }
-    .export-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:500; display:flex; align-items:flex-end; justify-content:center; }
-    .export-card { background:#fff; border-radius:20px 20px 0 0; padding:24px 20px 32px; width:100%; max-width:600px; max-height:85vh; overflow-y:auto; }
-    .export-text { width:100%; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; font-size:14px; line-height:1.7; background:#f5f5f0; border:1px solid #e8e8e0; border-radius:10px; padding:14px; resize:none; color:#1a1a18; }
-    .pay-expand-row { display:flex; flex-direction:column; gap:5px; margin:6px 0 4px; padding:10px 12px; background:#fef2f2; border-radius:8px; }
-    .pay-expand-item { display:flex; justify-content:space-between; font-size:13px; color:#555; }
-    .btn-caret { background:none; border:none; cursor:pointer; color:#aaa; padding:2px 4px; line-height:1; }
-    .btn-caret:hover { color:#555; }
-
-    /* SORT CONTROLS TOOLBAR */
-    .sort-bar { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e8e8e0; border-radius: 10px; padding: 6px 12px; margin-bottom: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .sort-label { font-size: 12px; font-weight: 600; color: #888; flex-shrink: 0; }
-    .sort-btn { background: none; border: none; font-family: inherit; font-size: 12px; font-weight: 600; color: #666; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
-    .sort-btn.active { background: #639922; color: #fff; }
+    /* ── OVERLAYS ── */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center}
+    .overlay-card{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:600px;max-height:85vh;overflow-y:auto}
+    .overlay-card h2{font-size:16px;font-weight:700;margin-bottom:16px}
+    .overlay-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .overlay-close{background:none;border:none;cursor:pointer;color:#aaa;font-size:22px;line-height:1}
+    .export-text{width:100%;font-family:monospace;font-size:12px;line-height:1.6;background:#f5f5f0;border:1px solid #e8e8e0;border-radius:10px;padding:12px;resize:none;color:#1a1a18}
+    .saving-toast{position:fixed;top:62px;right:14px;z-index:300;background:#1a1a18;color:#fff;font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px;opacity:0;transition:opacity .25s;pointer-events:none}
+    .saving-toast.show{opacity:1}
   </style>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-icon">💰</div>
   <h1 class="login-title">Bills Tracker</h1>
-  <p class="login-sub">Keep bills organised and always know exactly how much to set aside each fortnight.</p>
+  <p class="login-sub">Know exactly what to set aside every payday.</p>
   <button class="btn-google" onclick="signIn()">
     <svg class="google-logo" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -202,6 +202,7 @@
   <p class="login-error" id="loginError"></p>
 </div>
 
+<!-- MAIN APP -->
 <div id="mainApp">
   <header class="topbar">
     <span class="topbar-title">💰 Bills Tracker</span>
@@ -210,22 +211,17 @@
       <button class="btn-signout" onclick="doSignOut()">Sign out</button>
     </div>
   </header>
-  <nav class="tabbar" aria-label="Main navigation">
-    <button class="tabbar-item active" id="tab-overview"   onclick="switchTab('overview')"><i class="ti ti-dashboard" aria-hidden="true"></i>Overview</button>
-    <button class="tabbar-item"        id="tab-payday"     onclick="switchTab('payday')"><i class="ti ti-calendar-dollar" aria-hidden="true"></i>Payday</button>
-    <button class="tabbar-item"        id="tab-fund"       onclick="switchTab('fund')"><i class="ti ti-piggy-bank" aria-hidden="true"></i>Bills fund</button>
-    <button class="tabbar-item"        id="tab-projection" onclick="switchTab('projection')"><i class="ti ti-timeline" aria-hidden="true"></i>Lookahead</button>
-    <button class="tabbar-item"        id="tab-bills"      onclick="switchTab('bills')"><i class="ti ti-list" aria-hidden="true"></i>My bills</button>
-  </nav>
   <main class="scroll-content">
-    <div class="panel active" id="panel-overview"></div>
-    <div class="panel"        id="panel-payday"></div>
+    <div class="panel active" id="panel-today"></div>
     <div class="panel"        id="panel-fund"></div>
-    <div class="panel"        id="panel-projection"></div>
     <div class="panel"        id="panel-bills"></div>
   </main>
+  <nav class="tabbar" aria-label="Main navigation">
+    <button class="tabbar-item active" id="tab-today" onclick="switchTab('today')"><i class="ti ti-calendar-check" aria-hidden="true"></i>Today</button>
+    <button class="tabbar-item"        id="tab-fund"  onclick="switchTab('fund')"><i class="ti ti-piggy-bank" aria-hidden="true"></i>Fund</button>
+    <button class="tabbar-item"        id="tab-bills" onclick="switchTab('bills')"><i class="ti ti-list" aria-hidden="true"></i>My Bills</button>
+  </nav>
 </div>
-
 <div class="saving-toast" id="toast">Saved ✓</div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -234,126 +230,65 @@
 <script src="firebase-config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
 <script>
-// ─── CONSTANTS ────────────────────────────────────────────
-const FREQ_LABELS = {oneoff:'One-off',weekly:'Weekly',fortnightly:'Fortnightly','6weekly':'6-Weekly',monthly:'Monthly',quarterly:'Quarterly',annual:'Annual'};
-const FREQ_COLORS = {
-  oneoff:      {bg:'#f3f4f6',color:'#555'},
-  weekly:      {bg:'#dcfce7',color:'#166534'}, fortnightly:{bg:'#d1fae5',color:'#065f46'},
-  '6weekly':   {bg:'#fce7f3',color:'#9d174d'},
-  monthly:     {bg:'#dbeafe',color:'#1e40af'}, quarterly:  {bg:'#fef3c7',color:'#92400e'},
-  annual:      {bg:'#ede9fe',color:'#5b21b6'}
-};
-const CAT_ICONS = {home:'🏠',utilities:'⚡',subscriptions:'📱',insurance:'🛡️',transport:'🚗',health:'❤️',other:'📋'};
-const CAT_BG    = {home:'#dcfce7',utilities:'#fef3c7',subscriptions:'#dbeafe',insurance:'#ede9fe',transport:'#d1fae5',health:'#fee2e2',other:'#f3f4f6'};
-const TO_FN = {oneoff:0,weekly:52/26,fortnightly:1,'6weekly':(52/6)/26,monthly:12/26,quarterly:4/26,annual:1/26};
-const TO_YR = {oneoff:0,weekly:52,fortnightly:26,'6weekly':52/6,monthly:12,quarterly:4,annual:1};
+// ─── CONSTANTS ────────────────────────────────────────────────────────────────
+const FREQ_LABELS={oneoff:'One-off',weekly:'Weekly',fortnightly:'Fortnightly','6weekly':'6-Weekly',monthly:'Monthly',quarterly:'Quarterly',annual:'Annual'};
+const FREQ_COLORS={oneoff:{bg:'#f3f4f6',color:'#555'},weekly:{bg:'#dcfce7',color:'#166534'},fortnightly:{bg:'#d1fae5',color:'#065f46'},'6weekly':{bg:'#fce7f3',color:'#9d174d'},monthly:{bg:'#dbeafe',color:'#1e40af'},quarterly:{bg:'#fef3c7',color:'#92400e'},annual:{bg:'#ede9fe',color:'#5b21b6'}};
+const CAT_ICONS={home:'🏠',utilities:'⚡',subscriptions:'📱',insurance:'🛡️',transport:'🚗',health:'❤️',other:'📋'};
+const CAT_BG={home:'#dcfce7',utilities:'#fef3c7',subscriptions:'#dbeafe',insurance:'#ede9fe',transport:'#d1fae5',health:'#fee2e2',other:'#f3f4f6'};
+const TO_FN={oneoff:0,weekly:52/26,fortnightly:1,'6weekly':(52/6)/26,monthly:12/26,quarterly:4/26,annual:1/26};
+const TO_YR={oneoff:0,weekly:52,fortnightly:26,'6weekly':52/6,monthly:12,quarterly:4,annual:1};
 
-// ─── STATE ────────────────────────────────────────────────
-let bills     = [];
-let paidKeys  = [];
-let ddOvrKeys = [];
-let paidAmounts = {};
-let historyAmounts = {};
-let skippedKeys = [];
-let settings  = {balance:0, balanceDate:tod(), paydayDate:tod(), paydayPay:0, paydayFreq:'fortnightly', billsSortBy:'due'};
-let uid = null, db = null, saveTimer = null, editingId = null;
-let cachedSafePace = 0;
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let bills=[],paidKeys=[],ddOvrKeys=[],paidAmounts={},historyAmounts={},skippedKeys=[];
+let settings={balance:0,balanceDate:tod(),paydayDate:'',paydayPay:0,paydayFreq:'fortnightly',billsSortBy:'due'};
+let uid=null,db=null,saveTimer=null,editingId=null,cachedSafePace=0;
 
-// ─── RECURRENCE ───────────────────────────────────────────
-function addCycle(d, freq) {
-  switch(freq){case'weekly':return d.add(1,'week');case'fortnightly':return d.add(2,'week');case'6weekly':return d.add(6,'week');case'monthly':return d.add(1,'month');case'quarterly':return d.add(3,'month');case'annual':return d.add(1,'year');default:return d.add(2,'week');}
-}
-function prevCycle(d, freq) {
-  switch(freq){case'weekly':return d.subtract(1,'week');case'fortnightly':return d.subtract(2,'week');case'6weekly':return d.subtract(6,'week');case'monthly':return d.subtract(1,'month');case'quarterly':return d.subtract(3,'month');case'annual':return d.subtract(1,'year');default:return d.subtract(2,'week');}
-}
-function nextDueOnOrAfter(bill, fromDj) {
-  let d = dayjs(bill.date);
-  if (bill.freq === 'oneoff') return d;
-  if (!d.isBefore(fromDj)) return d;
-  const approx = {weekly:7,fortnightly:14,'6weekly':42,monthly:30.44,quarterly:91.31,annual:365.25}[bill.freq]||14;
-  const skip = Math.max(0, Math.floor(fromDj.diff(d,'day')/approx) - 2);
-  for(let i=0;i<skip;i++) d = addCycle(d,bill.freq);
-  while(d.isBefore(fromDj)) d = addCycle(d,bill.freq);
+// ─── RECURRENCE ───────────────────────────────────────────────────────────────
+function addCycle(d,freq){switch(freq){case'weekly':return d.add(1,'week');case'fortnightly':return d.add(2,'week');case'6weekly':return d.add(6,'week');case'monthly':return d.add(1,'month');case'quarterly':return d.add(3,'month');case'annual':return d.add(1,'year');default:return d.add(2,'week');}}
+function prevCycle(d,freq){switch(freq){case'weekly':return d.subtract(1,'week');case'fortnightly':return d.subtract(2,'week');case'6weekly':return d.subtract(6,'week');case'monthly':return d.subtract(1,'month');case'quarterly':return d.subtract(3,'month');case'annual':return d.subtract(1,'year');default:return d.subtract(2,'week');}}
+function nextDueOnOrAfter(bill,fromDj){
+  let d=dayjs(bill.date);
+  if(bill.freq==='oneoff') return d;
+  if(!d.isBefore(fromDj)) return d;
+  const approx={weekly:7,fortnightly:14,'6weekly':42,monthly:30.44,quarterly:91.31,annual:365.25}[bill.freq]||14;
+  const skip=Math.max(0,Math.floor(fromDj.diff(d,'day')/approx)-2);
+  for(let i=0;i<skip;i++) d=addCycle(d,bill.freq);
+  while(d.isBefore(fromDj)) d=addCycle(d,bill.freq);
   return d;
 }
-function occurrencesInRange(bill, startDj, endDj) {
-  if (bill.freq === 'oneoff') {
-    let d = dayjs(bill.date);
-    return (!d.isBefore(startDj) && !d.isAfter(endDj)) ? [d.format('YYYY-MM-DD')] : [];
-  }
-  const dates=[]; let d=nextDueOnOrAfter(bill,startDj);
+function occurrencesInRange(bill,startDj,endDj){
+  if(bill.freq==='oneoff'){const d=dayjs(bill.date);return(!d.isBefore(startDj)&&!d.isAfter(endDj))?[d.format('YYYY-MM-DD')]:[];}
+  const dates=[];let d=nextDueOnOrAfter(bill,startDj);
   while(!d.isAfter(endDj)){dates.push(d.format('YYYY-MM-DD'));d=addCycle(d,bill.freq);}
   return dates;
 }
-function currentLiab(bill, asOfDj) {
-  const expAmt = getExpectedAmount(bill, asOfDj.format('YYYY-MM-DD'));
-  if (bill.freq === 'oneoff') {
-    const amtPaid = getAmtPaid(bill, bill.date);
-    if (amtPaid >= expAmt) return 0;
-    if (asOfDj.isAfter(dayjs(bill.date))) return 0;
-    return expAmt - amtPaid;
-  }
-  const nxt=nextDueOnOrAfter(bill,asOfDj), prv=prevCycle(nxt,bill.freq);
-  const total=nxt.diff(prv,'day'), elap=Math.max(0,Math.min(asOfDj.diff(prv,'day'),total));
-  return expAmt*(elap/total);
+function getOverdueOccurrences(bill,targetDj){
+  if(bill.freq==='oneoff'){const d=dayjs(bill.date);if(d.isBefore(targetDj)&&!isPaidOcc(bill.id,bill.date))return[bill.date];return[];}
+  const nxt=nextDueOnOrAfter(bill,targetDj),prv=prevCycle(nxt,bill.freq);
+  if(prv.isBefore(targetDj)&&!prv.isBefore(dayjs(bill.date))){const ds=prv.format('YYYY-MM-DD');if(!isPaidOcc(bill.id,ds))return[ds];}
+  return[];
 }
 
-// ─── CAPPED OVERDUE CALCULATOR ────────────────────────────
-function getOverdueOccurrences(bill, targetDj) {
-  if (bill.freq === 'oneoff') {
-    let d = dayjs(bill.date);
-    if (d.isBefore(targetDj) && !isPaidOcc(bill.id, bill.date)) {
-      return [bill.date];
-    }
-    return [];
-  }
-  const nxt = nextDueOnOrAfter(bill, targetDj);
-  const prv = prevCycle(nxt, bill.freq);
-  if (prv.isBefore(targetDj) && !prv.isBefore(dayjs(bill.date))) {
-    const ds = prv.format('YYYY-MM-DD');
-    if (!isPaidOcc(bill.id, ds)) {
-      return [ds];
-    }
-  }
-  return [];
+// ─── PAID STATE ───────────────────────────────────────────────────────────────
+function occKey(id,ds){return`${id}_${ds}`;}
+function isSkipped(id,ds){return skippedKeys.includes(occKey(id,ds));}
+function isPaidOcc(id,ds){
+  if(isSkipped(id,ds)) return true;
+  const bill=bills.find(b=>b.id===id);if(!bill) return false;
+  if(bill.dd){if(ddOvrKeys.includes(occKey(id,ds))) return false;return true;}
+  return getAmtPaid(bill,ds)>=getExpectedAmount(bill,ds);
 }
+function getExpectedAmount(bill,ds){const k=occKey(bill.id,ds);return historyAmounts[k]!==undefined?historyAmounts[k]:bill.amount;}
+function getAmtPaid(bill,ds){const k=occKey(bill.id,ds);if(paidKeys.includes(k)) return getExpectedAmount(bill,ds);if(paidAmounts[k]!==undefined) return paidAmounts[k];return 0;}
 
-// ─── PAID STATE ───────────────────────────────────────────
-function occKey(id,ds)        { return `${id}_${ds}`; }
-function isSkipped(id, ds)    { return skippedKeys.includes(occKey(id, ds)); }
+// ─── MISC ─────────────────────────────────────────────────────────────────────
+function tod(){return new Date().toISOString().split('T')[0];}
+function toFn(a,f){return a*(TO_FN[f]??1);}
+function toYr(a,f){return a*(TO_YR[f]??1);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-function isPaidOcc(id, ds) {
-  if (isSkipped(id, ds)) return true;
-  const bill = bills.find(b => b.id === id);
-  if (!bill) return false;
-  if (bill.dd) {
-    if (ddOvrKeys.includes(occKey(id, ds))) return false;
-    return true;
-  }
-  return getAmtPaid(bill, ds) >= getExpectedAmount(bill, ds);
-}
-// Modified to use the new dynamic history snapshot values cleanly
-function getExpectedAmount(bill, ds) {
-  const k = occKey(bill.id, ds);
-  return historyAmounts[k] !== undefined ? historyAmounts[k] : bill.amount;
-}
-function getAmtPaid(bill, ds) {
-  const k = occKey(bill.id, ds);
-  if (paidKeys.includes(k)) return getExpectedAmount(bill, ds);
-  if (paidAmounts[k] !== undefined) return paidAmounts[k];
-  return 0;
-}
-
-// ─── MISC ─────────────────────────────────────────────────
-function tod()     { return new Date().toISOString().split('T')[0]; }
-function toFn(a,f) { return a*(TO_FN[f]??1); }
-function toYr(a,f) { return a*(TO_YR[f]??1); }
-function esc(s)    { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-// ─── FIREBASE ─────────────────────────────────────────────
-const auth = firebase.auth();
-db = firebase.firestore();
-
+// ─── FIREBASE ─────────────────────────────────────────────────────────────────
+const auth=firebase.auth();db=firebase.firestore();
 auth.onAuthStateChanged(async user=>{
   if(user){
     uid=user.uid;
@@ -361,7 +296,7 @@ auth.onAuthStateChanged(async user=>{
     if(user.photoURL){av.src=user.photoURL;av.style.display='block';}
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('mainApp').style.display='block';
-    document.getElementById('panel-overview').innerHTML='<div class="empty"><i class="ti ti-loader" style="font-size:28px"></i>Loading…</div>';
+    document.getElementById('panel-today').innerHTML='<div class="empty"><i class="ti ti-loader" style="font-size:30px"></i>Loading…</div>';
     await loadData();
   } else {
     uid=null;
@@ -369,42 +304,22 @@ auth.onAuthStateChanged(async user=>{
     document.getElementById('mainApp').style.display='none';
   }
 });
-
-function signIn()    { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(()=>{document.getElementById('loginError').textContent='Sign in failed — please try again.';}); }
-function doSignOut() { auth.signOut(); }
-
+function signIn(){auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(()=>{document.getElementById('loginError').textContent='Sign in failed — please try again.';});}
+function doSignOut(){auth.signOut();}
 async function loadData(){
-  const [bs,ss,ps]=await Promise.all([
-    db.collection(`users/${uid}/bills`).orderBy('createdAt','asc').get(),
-    db.doc(`users/${uid}/meta/settings`).get(),
-    db.doc(`users/${uid}/meta/paid`).get()
-  ]);
+  const[bs,ss,ps]=await Promise.all([db.collection(`users/${uid}/bills`).orderBy('createdAt','asc').get(),db.doc(`users/${uid}/meta/settings`).get(),db.doc(`users/${uid}/meta/paid`).get()]);
   bills=bs.docs.map(d=>({id:d.id,...d.data()}));
   if(ss.exists) settings={...settings,...ss.data()};
-  if(ps.exists){
-    paidKeys       = ps.data().paidKeys       || [];
-    ddOvrKeys      = ps.data().ddOvrKeys      || [];
-    paidAmounts    = ps.data().paidAmounts    || {};
-    historyAmounts = ps.data().historyAmounts || {};
-    skippedKeys    = ps.data().skippedKeys    || [];
-  }
+  if(ps.exists){paidKeys=ps.data().paidKeys||[];ddOvrKeys=ps.data().ddOvrKeys||[];paidAmounts=ps.data().paidAmounts||{};historyAmounts=ps.data().historyAmounts||{};skippedKeys=ps.data().skippedKeys||[];}
   renderAll();
 }
+async function addBillFS(data){const r=await db.collection(`users/${uid}/bills`).add({...data,createdAt:firebase.firestore.FieldValue.serverTimestamp()});return r.id;}
+async function deleteBillFS(id){await db.doc(`users/${uid}/bills/${id}`).delete();}
+function saveSettingsDebounced(){clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{await db.doc(`users/${uid}/meta/settings`).set(settings,{merge:true});toast('Saved ✓');},700);}
+async function savePaid(){await db.doc(`users/${uid}/meta/paid`).set({paidKeys,ddOvrKeys,paidAmounts,historyAmounts,skippedKeys});toast('Saved ✓');}
+function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1600);}
 
-async function addBillFS(data){
-  const r=await db.collection(`users/${uid}/bills`).add({...data,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-  return r.id;
-}
-async function deleteBillFS(id){ await db.doc(`users/${uid}/bills/${id}`).delete(); }
-
-function saveSettingsDebounced(){
-  clearTimeout(saveTimer);
-  saveTimer=setTimeout(async()=>{await db.doc(`users/${uid}/meta/settings`).set(settings,{merge:true});toast('Saved ✓');},700);
-}
-async function savePaid(){ await db.doc(`users/${uid}/meta/paid`).set({paidKeys,ddOvrKeys,paidAmounts,historyAmounts,skippedKeys}); toast('Saved ✓'); }
-function toast(msg){ const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1600); }
-
-// ─── NAVIGATION ───────────────────────────────────────────
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
 function switchTab(tab){
   document.querySelectorAll('.tabbar-item').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -412,319 +327,495 @@ function switchTab(tab){
   document.getElementById('panel-'+tab).classList.add('active');
 }
 function renderAll(){
-  const safePace = calculateSafePace();
-  cachedSafePace = safePace;
-  renderOverview(safePace);
-  renderProjection(safePace);
-  renderBills();
-  renderPayday();
-  renderFund(safePace);
+  const sp=calculateSafePace();cachedSafePace=sp;
+  renderToday(sp);renderFund(sp);renderBills();
 }
 
-// ─── ENGINE SIMULATION LOOKUPS ────────────────────────────
-function getPayCycleDates(startDj, freq, index) {
-  if (freq === 'weekly') {
-    return { start: startDj.add(index, 'week'), end: startDj.add(index, 'week').add(6, 'day') };
-  } else if (freq === 'monthly') {
-    return { start: startDj.add(index, 'month'), end: startDj.add(index, 'month').add(1, 'month').subtract(1, 'day') };
-  } else {
-    return { start: startDj.add(index * 2, 'week'), end: startDj.add(index * 2, 'week').add(13, 'day') };
+// ─── SAFE PACE ENGINE ─────────────────────────────────────────────────────────
+function getPayCycleDates(startDj,freq,index){
+  if(freq==='weekly')  return{start:startDj.add(index,'week'),end:startDj.add(index,'week').add(6,'day')};
+  if(freq==='monthly') return{start:startDj.add(index,'month'),end:startDj.add(index,'month').add(1,'month').subtract(1,'day')};
+  return{start:startDj.add(index*2,'week'),end:startDj.add(index*2,'week').add(13,'day')};
+}
+function calculateSafePace(){
+  const fundBills=bills.filter(b=>!b.fundExclude);
+  if(!fundBills.length) return 0;
+  const balance=settings.balance||0;
+  const simStart=dayjs(settings.paydayDate||tod());
+  const balanceDj=dayjs(settings.balanceDate||tod());
+  const freq=settings.paydayFreq||'fortnightly';
+  const cyclesCount=freq==='weekly'?156:(freq==='monthly'?36:78);
+  const balReadjust=balanceDj.isAfter(simStart)||balanceDj.isSame(simStart,'day');
+  let odAmt=0;
+  fundBills.forEach(b=>getOverdueOccurrences(b,simStart).forEach(ds=>{odAmt+=Math.max(getExpectedAmount(b,ds)-getAmtPaid(b,ds),0);}));
+  let maxRate=0,running=0;
+  for(let k=1;k<=cyclesCount;k++){
+    const dates=getPayCycleDates(simStart,freq,k-1);let cyc=0;
+    fundBills.forEach(b=>occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{if(!isSkipped(b.id,ds)) cyc+=getExpectedAmount(b,ds);}));
+    running+=cyc;
+    const denom=balReadjust?Math.max(k-1,1):k;
+    const rate=(running+odAmt-balance)/denom;
+    if(rate>maxRate) maxRate=rate;
   }
+  return Math.max(maxRate,0);
 }
 
-function calculateSafePace() {
-  const fundBills = bills.filter(b => !b.fundExclude);
-  if (!fundBills.length) return 0;
-  
-  const balance   = settings.balance || 0;
-  const simStart  = dayjs(settings.paydayDate  || tod());
-  const balanceDj = dayjs(settings.balanceDate || tod());
-  const freq      = settings.paydayFreq || 'fortnightly';
-  // 3 years internally for accuracy (captures 3 rounds of annual bills)
-  const cyclesCount = freq === 'weekly' ? 156 : (freq === 'monthly' ? 36 : 78);
+// ─── TODAY TAB ────────────────────────────────────────────────────────────────
+function renderToday(safePace){
+  if(safePace===undefined) safePace=cachedSafePace||calculateSafePace();
+  const pv=settings.paydayDate;
+  const freq=settings.paydayFreq||'fortnightly';
 
-  // If the balance was recorded on or after the payday date, the current cycle's
-  // contribution is already baked in.  The projection skips cycle 1's contribution,
-  // so the safePace formula must use (k-1) contributions for k cycles.
-  const balReadjust = balanceDj.isAfter(simStart) || balanceDj.isSame(simStart, 'day');
-  
-  let odAmt = 0;
-  fundBills.forEach(b => {
-    getOverdueOccurrences(b, simStart).forEach(ds => {
-      odAmt += Math.max(getExpectedAmount(b, ds) - getAmtPaid(b, ds), 0);
-    });
-  });
-
-  let maxSimRate = 0;
-  let runningBillsSum = 0;
-  
-  for (let k = 1; k <= cyclesCount; k++) {
-    const dates = getPayCycleDates(simStart, freq, k - 1);
-    let cycleBillsAmt = 0;
-    
-    fundBills.forEach(b => {
-      occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
-        if (!isSkipped(b.id, ds)) cycleBillsAmt += getExpectedAmount(b, ds);
-      });
-    });
-    
-    runningBillsSum += cycleBillsAmt;
-    // When balance already includes the cycle-1 contribution, only (k-1) more
-    // contributions will be made before cycle k ends — use that as the denominator.
-    const denom = balReadjust ? Math.max(k - 1, 1) : k;
-    const requiredRate = (runningBillsSum + odAmt - balance) / denom;
-    if (requiredRate > maxSimRate) {
-      maxSimRate = requiredRate;
-    }
+  // No setup yet
+  if(!pv){
+    document.getElementById('panel-today').innerHTML=`
+      <div class="setup-card">
+        <i class="ti ti-calendar-dollar" style="font-size:36px;color:#639922;display:block;margin-bottom:12px"></i>
+        <p>Set up your payday details to get started. You can update these any time in the <strong>Fund</strong> tab.</p>
+        <button class="btn-primary" style="max-width:220px;margin:0 auto" onclick="switchTab('fund')">
+          <i class="ti ti-settings" aria-hidden="true"></i> Set up payday
+        </button>
+      </div>
+      ${!bills.length?'<div class="empty"><i class="ti ti-list" aria-hidden="true"></i>Add your bills in <strong>My Bills</strong></div>':''}`;
+    return;
   }
-  return Math.max(maxSimRate, 0);
-}
 
-// ─── OVERVIEW PANEL ───────────────────────────────────────
-function renderOverview(safePace) {
-  if (safePace === undefined) safePace = calculateSafePace();
-  const pay = settings.paydayPay || 0;
-  const pv = settings.paydayDate || tod();
-  const freq = settings.paydayFreq || 'fortnightly';
-  
-  const start = dayjs(pv);
-  const dates = getPayCycleDates(start, freq, 0);
-  
-  let directFromPayAmt = 0;
-  let autoPaidDDAmt = 0;
-  const payFromPayItems = [];
-  
-  bills.forEach(b => {
-    occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
-      const expAmt = getExpectedAmount(b, ds);
-      if (b.fundExclude) {
-        directFromPayAmt += expAmt;
-        payFromPayItems.push({name: b.name, amount: expAmt, due: dayjs(ds).format('D MMM')});
-      }
-      if (b.dd) autoPaidDDAmt += expAmt;
+  const pay=settings.paydayPay||0;
+  const start=dayjs(pv);
+  const dates=getPayCycleDates(start,freq,0);
+  const fundBills=bills.filter(b=>!b.fundExclude);
+
+  // DD amount this cycle
+  let ddAmt=0;const ddItems=[];
+  fundBills.filter(b=>b.dd).forEach(b=>{
+    occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{
+      if(!isSkipped(b.id,ds)){const a=getExpectedAmount(b,ds);ddAmt+=a;ddItems.push({name:b.name,amount:a,due:dayjs(ds).format('D MMM')});}
     });
   });
-  
-  const disposable = pay - safePace - directFromPayAmt;
-  const isNegative = disposable < 0;
+  ddItems.sort((a,b)=>a.due.localeCompare(b.due));
+  const transferAmt=Math.max(safePace-ddAmt,0);
+  let fromPayAmt=0;
+  bills.filter(b=>b.fundExclude).forEach(b=>occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{fromPayAmt+=getExpectedAmount(b,ds);}));
+  const disposable=pay>0?pay-safePace-fromPayAmt:null;
 
-  const todayDj = dayjs(tod());
-  const sixWeeksLaterDj = todayDj.add(6, 'week');
-  const largeBills = [];
-  bills.forEach(b => {
-    occurrencesInRange(b, todayDj, sixWeeksLaterDj).forEach(ds => {
-      const expAmt = getExpectedAmount(b, ds);
-      if (expAmt > 500 && !isPaidOcc(b.id, ds)) {
-        largeBills.push({ bill: b, dateStr: ds, amount: expAmt });
-      }
-    });
-  });
-  largeBills.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
-
-  const largeBillsHtml = `
-    <p class="section-label">Large Upcoming Bills (&gt; $500)</p>
-    <div class="card" style="padding:14px;margin-bottom:0">
-      ${largeBills.length === 0
-        ? `<div style="color:#666;font-size:14px;text-align:center;padding:10px 0"><i class="ti ti-circle-check" style="color:#639922;font-size:18px;vertical-align:middle;margin-right:4px"></i>No large bills (&gt;$500) due within the next 6 weeks.</div>`
-        : `<div style="display:flex;flex-direction:column;gap:10px">${largeBills.map(item => {
-            const daysLeft = dayjs(item.dateStr).diff(todayDj, 'day');
-            const timing = daysLeft === 0 ? 'due today' : daysLeft === 1 ? 'due tomorrow' : `in ${daysLeft} days`;
-            return `<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0f0e8;padding-bottom:8px">
-              <div><span style="font-weight:600;font-size:14px">${esc(item.bill.name)}</span>
-                <div style="font-size:12px;color:#888;margin-top:2px">Due ${dayjs(item.dateStr).format('ddd D MMM YYYY')} (${timing})</div>
-              </div>
-              <span style="font-weight:700;font-size:15px;color:#991b1b">$${item.amount.toFixed(2)}</span>
-            </div>`;
-          }).join('')}</div>`
-      }
+  // Transfer card
+  const transferCard=`
+    <div class="transfer-card">
+      <div class="transfer-main">Transfer to bills account</div>
+      <div class="transfer-amount">$${transferAmt.toFixed(2)}</div>
+      <div class="transfer-rows">
+        ${ddAmt>0?`<div class="transfer-row"><span class="label">🏦 Keep for direct debits</span><span class="val">$${ddAmt.toFixed(2)}</span></div>
+        <div class="dd-breakdown">${ddItems.map(d=>`<div class="dd-breakdown-row"><span>${esc(d.name)} · due ${d.due}</span><span>$${d.amount.toFixed(2)}</span></div>`).join('')}</div>`:''}
+        ${disposable!==null?`<div class="transfer-row" style="margin-top:4px"><span class="label">🎈 Spending money left</span><span class="val" style="color:${disposable<0?'#ef4444':'#1e40af'}">~$${Math.max(disposable,0).toFixed(2)}</span></div>`:''}
+      </div>
     </div>`;
 
-  const payFromPayDetail = payFromPayItems.length > 0
-    ? `<div id="payFromPayExpand" style="display:none">
-        <div class="pay-expand-row">
-          ${payFromPayItems.map(i=>`<div class="pay-expand-item"><span>${esc(i.name)} <span style="color:#aaa;font-size:11px">due ${i.due}</span></span><span style="font-weight:600;color:#991b1b">$${i.amount.toFixed(2)}</span></div>`).join('')}
-        </div>
-      </div>` : '';
+  // Overdue
+  const odOccs=[];
+  fundBills.forEach(b=>getOverdueOccurrences(b,start).forEach(ds=>odOccs.push({bill:b,ds})));
 
-  document.getElementById('panel-overview').innerHTML = `
-    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
-      <button class="btn-export" onclick="showExportMessage()">
-        <i class="ti ti-send" aria-hidden="true"></i> Export instructions
+  // This cycle
+  const fnOccs=[];
+  bills.forEach(b=>occurrencesInRange(b,dates.start,dates.end).forEach(ds=>fnOccs.push({bill:b,ds})));
+  const cycFund=fnOccs.filter(o=>!o.bill.fundExclude);
+  const cycPay =fnOccs.filter(o=> o.bill.fundExclude);
+
+  // Progress (overdue + fund this cycle, excluding from-pay)
+  const allFundOccs=[...odOccs,...cycFund];
+  const handled=allFundOccs.filter(o=>isPaidOcc(o.bill.id,o.ds)).length;
+  const total=allFundOccs.length;
+  const pct=total>0?Math.round(handled/total*100):100;
+
+  const progressHtml=total>0?`
+    <div class="progress-label">${handled} of ${total} bills handled</div>
+    <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div>`:
+    `<div class="progress-label" style="color:#639922">✓ All bills handled this cycle</div>`;
+
+  // Render a check row
+  const checkRow=(o,isOverdue=false)=>{
+    const expAmt=getExpectedAmount(o.bill,o.ds);
+    const amtPaid=getAmtPaid(o.bill,o.ds);
+    const skipped=isSkipped(o.bill.id,o.ds);
+    const paid=isPaidOcc(o.bill.id,o.ds);
+    const partial=!paid&&!skipped&&amtPaid>0&&amtPaid<expAmt;
+    const adjusted=!skipped&&historyAmounts[occKey(o.bill.id,o.ds)]!==undefined;
+    const itemId=`ci-${o.bill.id}-${o.ds}`;
+    const dueLabel=isOverdue?`Was due ${dayjs(o.ds).format('D MMM')} · overdue`:
+      `Due ${dayjs(o.ds).format('ddd D MMM')}${o.bill.dd?' · DD scheduled':''}`;
+
+    if(skipped) return `<div class="check-row skipped" id="${itemId}">
+      <div class="check-circle ban"><i class="ti ti-ban" style="font-size:12px"></i></div>
+      <div class="check-info">
+        <div class="check-name" style="color:#9ca3af">${esc(o.bill.name)}<span class="badge badge-skip">Skipped</span></div>
+        <div class="check-sub">${dueLabel}</div>
+      </div>
+      <span class="check-amt" style="color:#9ca3af">—</span>
+      <button class="check-pencil" onclick="showBillAdjust('${o.bill.id}','${o.ds}',${o.bill.amount},'${itemId}')" title="Restore"><i class="ti ti-pencil" style="font-size:14px"></i></button>
+    </div>`;
+
+    return `<div class="check-row ${paid?'done':''} ${isOverdue?'overdue':''}" id="${itemId}">
+      <button class="check-circle ${paid?'on':''}"
+        onclick="tapToday('${o.bill.id}','${o.ds}')"
+        title="${o.bill.dd?(paid?'DD — tap to flag as failed':'DD — tap to confirm'):''}"
+        aria-label="${paid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
+        <i class="ti ti-check" style="font-size:13px"></i>
+      </button>
+      <div class="check-info">
+        <div class="check-name">
+          ${esc(o.bill.name)}
+          ${o.bill.dd?'<span class="badge badge-dd">DD</span>':''}
+          ${adjusted?'<span class="badge badge-adj">Adjusted</span>':''}
+          ${isOverdue?'<span class="badge" style="background:#fee2e2;color:#991b1b;font-size:10px">Overdue</span>':''}
+        </div>
+        <div class="check-sub" style="${isOverdue&&!paid?'color:#ef4444':''}">
+          ${dueLabel}
+          ${partial?` · <span style="color:#639922;font-weight:600">Paid $${amtPaid.toFixed(2)} of $${expAmt.toFixed(2)}</span>`:''}
+        </div>
+      </div>
+      <div class="check-amt" style="${isOverdue&&!paid?'color:#991b1b':''}">$${(expAmt-amtPaid).toFixed(2)}${partial?' left':''}</div>
+      <button class="check-pencil" onclick="showBillAdjust('${o.bill.id}','${o.ds}',${o.bill.amount},'${itemId}')" title="Adjust / skip">
+        <i class="ti ti-pencil" style="font-size:14px"></i>
+      </button>
+    </div>`;
+  };
+
+  const odHtml=odOccs.length===0?'':
+    `<div class="check-section-header" style="color:#991b1b">⚠ Overdue</div>
+    <div class="check-list">${odOccs.sort((a,b)=>a.ds.localeCompare(b.ds)).map(o=>checkRow(o,true)).join('')}</div>`;
+
+  const fundHtml=cycFund.length===0?'':
+    `<div class="check-section-header">From bills fund <span style="font-weight:400;color:#aaa">${dayjs(dates.start).format('D MMM')} – ${dayjs(dates.end).format('D MMM')}</span></div>
+    <div class="check-list">${[...cycFund].sort((a,b)=>a.ds.localeCompare(b.ds)).map(o=>checkRow(o)).join('')}</div>`;
+
+  const payHtml=cycPay.length===0?'':
+    `<div class="check-section-header">From pay <span style="font-weight:400;color:#aaa">no fund contribution needed</span></div>
+    <div class="check-list">${[...cycPay].sort((a,b)=>a.ds.localeCompare(b.ds)).map(o=>{
+      const expAmt=getExpectedAmount(o.bill,o.ds);
+      const itemId=`ci-${o.bill.id}-${o.ds}`;
+      return `<div class="check-row frompay done" id="${itemId}">
+        <div class="check-circle on" style="background:#bbb;border-color:#bbb"><i class="ti ti-check" style="font-size:13px"></i></div>
+        <div class="check-info">
+          <div class="check-name" style="color:#aaa">${esc(o.bill.name)}${o.bill.dd?'<span class="badge badge-dd">DD</span>':''}<span class="badge badge-exc">From pay</span></div>
+          <div class="check-sub">Due ${dayjs(o.ds).format('ddd D MMM')}</div>
+        </div>
+        <div class="check-amt" style="color:#aaa">$${expAmt.toFixed(2)}</div>
+        <button class="check-pencil" onclick="showBillAdjust('${o.bill.id}','${o.ds}',${o.bill.amount},'${itemId}')" title="Adjust"><i class="ti ti-pencil" style="font-size:14px"></i></button>
+      </div>`;
+    }).join('')}</div>`;
+
+  // Record payday
+  const nextCycle=getPayCycleDates(start,freq,1);
+  const undoBar=settings.previousPaydayDate?
+    `<div class="undo-bar">Recorded in error? Previous was ${dayjs(settings.previousPaydayDate).format('D MMM YYYY')}
+    <button onclick="undoRecordPayday()">Undo</button></div>`:'';
+
+  // Large upcoming bills (>$500 within 6 weeks)
+  const todDj=dayjs(tod());const sixW=todDj.add(6,'week');
+  const bigBills=[];
+  bills.forEach(b=>occurrencesInRange(b,todDj,sixW).forEach(ds=>{
+    const a=getExpectedAmount(b,ds);
+    if(a>500&&!isPaidOcc(b.id,ds)) bigBills.push({name:b.name,amount:a,due:dayjs(ds).format('D MMM')});
+  }));
+  bigBills.sort((a,b)=>a.due.localeCompare(b.due));
+  const bigHtml=bigBills.length===0?'':
+    `<div class="slabel">⚡ Large bills coming up</div>
+    <div class="card large-bills-card">${bigBills.map(b=>`<div class="large-bill-row"><span><strong>${esc(b.name)}</strong> · ${b.due}</span><span style="color:#ef4444;font-weight:700">$${b.amount.toFixed(2)}</span></div>`).join('')}</div>`;
+
+  document.getElementById('panel-today').innerHTML=`
+    <button class="send-btn" onclick="showExportMessage()">
+      <i class="ti ti-send" aria-hidden="true"></i> Send payday instructions
+    </button>
+    <div style="font-size:12px;color:#888;margin-bottom:10px">Payday: <strong>${start.format('ddd D MMM YYYY')}</strong></div>
+    ${!bills.length?`<div class="empty"><i class="ti ti-list"></i>Add your bills in <strong>My Bills</strong> to get started</div>`:`
+    ${transferCard}
+    ${progressHtml}
+    ${bigHtml}
+    ${odHtml}${fundHtml}${payHtml}
+    <button class="record-btn" onclick="promptRecordPayday()">
+      <i class="ti ti-circle-check" aria-hidden="true"></i>
+      Done — next payday ${nextCycle.start.format('D MMM')} →
+    </button>
+    ${undoBar}`}`;
+}
+
+async function tapToday(billId,ds){
+  const bill=bills.find(b=>b.id===billId);if(!bill) return;
+  const k=occKey(billId,ds);
+  if(bill.dd){ddOvrKeys=ddOvrKeys.includes(k)?ddOvrKeys.filter(x=>x!==k):[...ddOvrKeys,k];}
+  else{paidKeys=paidKeys.includes(k)?paidKeys.filter(x=>x!==k):[...paidKeys,k];}
+  renderToday(cachedSafePace);
+  try{await savePaid();}catch(e){console.error(e);}
+}
+
+function promptRecordPayday(){
+  const freq=settings.paydayFreq||'fortnightly';
+  const next=getPayCycleDates(dayjs(settings.paydayDate||tod()),freq,1).start.format('D MMM YYYY');
+  if(confirm(`Advance to next payday: ${next}?\n\nThis will reset the bill checklist for the new cycle.`)) recordPayday();
+}
+async function recordPayday(){
+  const freq=settings.paydayFreq||'fortnightly';
+  const next=getPayCycleDates(dayjs(settings.paydayDate||tod()),freq,1).start;
+  settings.previousPaydayDate=settings.paydayDate;
+  settings.paydayDate=next.format('YYYY-MM-DD');
+  const cutoff=dayjs().subtract(90,'day').format('YYYY-MM-DD');
+  paidKeys=paidKeys.filter(k=>k.slice(-10)>cutoff);
+  ddOvrKeys=ddOvrKeys.filter(k=>k.slice(-10)>cutoff);
+  skippedKeys=skippedKeys.filter(k=>k.slice(-10)>cutoff);
+  const ca={};Object.entries(paidAmounts).forEach(([k,v])=>{if(k.slice(-10)>cutoff)ca[k]=v;});paidAmounts=ca;
+  const ch={};Object.entries(historyAmounts).forEach(([k,v])=>{if(k.slice(-10)>cutoff)ch[k]=v;});historyAmounts=ch;
+  try{
+    await Promise.all([db.doc(`users/${uid}/meta/settings`).set(settings,{merge:true}),savePaid()]);
+    toast('Payday recorded ✓');
+  }catch(e){toast('Save failed — try again');}
+  renderAll();
+}
+async function undoRecordPayday(){
+  if(!settings.previousPaydayDate) return;
+  settings.paydayDate=settings.previousPaydayDate;
+  settings.previousPaydayDate=null;
+  try{await db.doc(`users/${uid}/meta/settings`).set(settings,{merge:true});toast('Undone ✓');}catch(e){}
+  renderAll();
+}
+
+// ─── BILL ADJUST (used from Today tab) ───────────────────────────────────────
+function showBillAdjust(billId,ds,baseAmt,itemId){
+  const itemEl=document.getElementById(itemId);if(!itemEl) return;
+  const existing=itemEl.querySelector('.fn-partial');if(existing){existing.remove();return;}
+  const bill=bills.find(b=>b.id===billId);
+  const currentActual=bill?getExpectedAmount(bill,ds):baseAmt;
+  const alreadySkipped=isSkipped(billId,ds);
+  const k=occKey(billId,ds);
+  const currentPaid=bill?getAmtPaid(bill,ds):0;
+  const div=document.createElement('div');div.className='fn-partial';div.style.cssText='flex-direction:column;gap:8px';
+  div.innerHTML=`
+    <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.05em;flex:0 0 100%">Adjust this occurrence</div>
+    <div style="display:flex;align-items:center;gap:8px;flex:0 0 100%">
+      <label style="font-size:12px;color:#888;flex-shrink:0">Actual amount ($)</label>
+      <input type="number" min="0" step="0.01" inputmode="decimal"
+        value="${currentActual!==baseAmt?currentActual.toFixed(2):''}" placeholder="${baseAmt.toFixed(2)}"
+        style="flex:1;min-width:0;height:36px;border:1px solid #e0e0d8;border-radius:8px;padding:0 10px;font-size:14px;background:#fafaf8;font-family:inherit;outline:none"
+        onkeydown="if(event.key==='Enter')setActualAmt('${billId}','${ds}',${baseAmt},this,'${itemId}')">
+      <button class="p-save" onclick="setActualAmt('${billId}','${ds}',${baseAmt},this.previousElementSibling,'${itemId}')">Set &amp; Pay</button>
+    </div>
+    ${!alreadySkipped&&currentPaid>0&&currentPaid<currentActual?`
+    <div style="display:flex;align-items:center;gap:8px;flex:0 0 100%">
+      <label style="font-size:12px;color:#888;flex-shrink:0">Amount paid ($)</label>
+      <input type="number" min="0" step="0.01" inputmode="decimal" value="${currentPaid.toFixed(2)}" placeholder="0.00"
+        style="flex:1;min-width:0;height:36px;border:1px solid #e0e0d8;border-radius:8px;padding:0 10px;font-size:14px;background:#fafaf8;font-family:inherit;outline:none"
+        id="partialInput-${k}" onkeydown="if(event.key==='Enter')savePartialFromAdjust('${billId}','${ds}','${itemId}')">
+      <button class="p-save" onclick="savePartialFromAdjust('${billId}','${ds}','${itemId}')">Save partial</button>
+    </div>`:''}
+    <div style="display:flex;gap:8px;flex:0 0 100%">
+      <button onclick="skipOccurrence('${billId}','${ds}','${itemId}')"
+        style="flex:1;height:34px;border:1px solid ${alreadySkipped?'#639922':'#e0e0d8'};border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:${alreadySkipped?'#639922':'#fafaf8'};color:${alreadySkipped?'#fff':'#555'}">
+        ${alreadySkipped?'✓ Skipped — tap to restore':'⊘ Skip this occurrence'}
+      </button>
+      <button class="p-clear" onclick="clearAdjustments('${billId}','${ds}','${itemId}')">Reset</button>
+    </div>`;
+  itemEl.appendChild(div);div.querySelector('input').focus();div.querySelector('input').select();
+}
+
+async function setActualAmt(billId,ds,baseAmt,inputEl,itemId){
+  const rawVal=parseFloat(inputEl.value);const amount=isNaN(rawVal)?baseAmt:rawVal;
+  const k=occKey(billId,ds);
+  if(amount<=0){delete historyAmounts[k];delete paidAmounts[k];paidKeys=paidKeys.filter(x=>x!==k);}
+  else{historyAmounts[k]=amount;delete paidAmounts[k];if(!paidKeys.includes(k))paidKeys=[...paidKeys,k];skippedKeys=skippedKeys.filter(x=>x!==k);}
+  renderAll();try{await savePaid();}catch(e){console.error(e);}
+}
+async function savePartialFromAdjust(billId,ds,itemId){
+  const inputEl=document.getElementById(`partialInput-${occKey(billId,ds)}`);if(!inputEl) return;
+  const amount=parseFloat(inputEl.value)||0;
+  const bill=bills.find(b=>b.id===billId);
+  const expAmt=bill?getExpectedAmount(bill,ds):0;
+  const k=occKey(billId,ds);
+  if(amount<=0){delete paidAmounts[k];paidKeys=paidKeys.filter(x=>x!==k);}
+  else if(amount>=expAmt){delete paidAmounts[k];if(!paidKeys.includes(k))paidKeys=[...paidKeys,k];}
+  else{paidAmounts[k]=amount;paidKeys=paidKeys.filter(x=>x!==k);}
+  renderAll();try{await savePaid();}catch(e){console.error(e);}
+}
+async function skipOccurrence(billId,ds,itemId){
+  const k=occKey(billId,ds);
+  if(skippedKeys.includes(k)){skippedKeys=skippedKeys.filter(x=>x!==k);}
+  else{skippedKeys=[...skippedKeys,k];paidKeys=paidKeys.filter(x=>x!==k);ddOvrKeys=ddOvrKeys.filter(x=>x!==k);delete paidAmounts[k];}
+  renderAll();try{await savePaid();}catch(e){console.error(e);}
+}
+async function clearAdjustments(billId,ds,itemId){
+  const k=occKey(billId,ds);
+  delete historyAmounts[k];delete paidAmounts[k];
+  paidKeys=paidKeys.filter(x=>x!==k);ddOvrKeys=ddOvrKeys.filter(x=>x!==k);skippedKeys=skippedKeys.filter(x=>x!==k);
+  renderAll();try{await savePaid();}catch(e){console.error(e);}
+}
+
+// ─── EXPORT INSTRUCTIONS ─────────────────────────────────────────────────────
+function showExportMessage(){
+  const pay=settings.paydayPay||0,pv=settings.paydayDate||tod(),freq=settings.paydayFreq||'fortnightly';
+  const sp=cachedSafePace||calculateSafePace();
+  const start=dayjs(pv),dates=getPayCycleDates(start,freq,0);
+  let fromPayAmt=0,ddAmt=0;const ddItems=[];
+  bills.forEach(b=>occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{
+    if(isSkipped(b.id,ds)) return;
+    const a=getExpectedAmount(b,ds);
+    if(b.fundExclude) fromPayAmt+=a;
+    else if(b.dd){ddAmt+=a;ddItems.push({name:b.name,amount:a,due:dayjs(ds).format('ddd D MMM')});}
+  }));
+  ddItems.sort((a,b)=>a.due.localeCompare(b.due));
+  const transfer=Math.max(sp-ddAmt,0),disc=pay-fromPayAmt-sp;
+  const lines=[];
+  if(fromPayAmt>0) lines.push(`  • $${fromPayAmt.toFixed(2)} for your regular payday bills.`);
+  if(ddItems.length>0){
+    lines.push(`  • Keep in your pay account for direct debits ($${ddAmt.toFixed(2)} total):`);
+    ddItems.forEach(d=>lines.push(`      - ${d.name}: $${d.amount.toFixed(2)} (due ${d.due})`));
+  }
+  lines.push(`  • $${transfer.toFixed(2)} is transferred to your bills fund account.`);
+  const msg=`This pay you will receive $${pay.toFixed(2)}.\nFrom this you will pay:\n\n${lines.join('\n')}\n\nThis leaves you with $${Math.max(disc,0).toFixed(2)} for discretionary spending.`;
+  const ov=document.createElement('div');ov.className='overlay';ov.id='exportOv';
+  ov.innerHTML=`<div class="overlay-card">
+    <div class="overlay-top"><h2>📋 Payday instructions</h2><button class="overlay-close" onclick="document.getElementById('exportOv').remove()">✕</button></div>
+    <textarea class="export-text" readonly rows="13" id="exportTxt">${msg}</textarea>
+    <button class="btn-primary" style="margin-top:12px" onclick="navigator.clipboard.writeText(document.getElementById('exportTxt').value).then(()=>toast('Copied ✓'))">
+      <i class="ti ti-copy"></i> Copy to clipboard
+    </button>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.getElementById('exportOv')?.remove();document.body.appendChild(ov);
+}
+
+// ─── FUND TAB ─────────────────────────────────────────────────────────────────
+function renderFund(safePace){
+  if(safePace===undefined) safePace=cachedSafePace||calculateSafePace();
+  const balance=settings.balance||0,asOf=settings.balanceDate||tod();
+  const freq=settings.paydayFreq||'fortnightly';
+  const pv=settings.paydayDate||tod();
+  const start=dayjs(pv);
+
+  // DD amount for status display
+  const fundBills=bills.filter(b=>!b.fundExclude);
+  const dates=getPayCycleDates(start,freq,0);
+  let ddAmt=0;
+  fundBills.filter(b=>b.dd).forEach(b=>occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{if(!isSkipped(b.id,ds))ddAmt+=getExpectedAmount(b,ds);}));
+  const transferAmt=Math.max(safePace-ddAmt,0);
+
+  // Rough coverage estimate
+  const ss=fundBills.reduce((s,b)=>s+toFn(b.amount,b.freq),0);
+  const coverageFortnights=ss>0?Math.floor(balance/ss):0;
+
+  document.getElementById('panel-fund').innerHTML=`
+    <p class="slabel">Bills account balance</p>
+    <div class="balance-card">
+      <div class="balance-input-row">
+        <div class="field"><label>Current balance ($)</label><input type="number" id="fundBalInput" value="${balance||''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
+        <div class="field" style="max-width:140px"><label>As of date</label><input type="date" id="fundDateInput" value="${asOf}"></div>
+      </div>
+      <button class="balance-save-btn" style="width:100%;margin-top:8px" onclick="saveBalance()">
+        <i class="ti ti-device-floppy" aria-hidden="true"></i> Update balance
       </button>
     </div>
 
-    <div class="hero" style="background:#1e40af;margin-bottom:12px">
-      <div class="hero-label">Estimated Disposable Income</div>
-      <div class="hero-amount" style="${isNegative?'color:#fca5a5':''}">$${disposable.toFixed(2)}</div>
-      <div class="hero-sub">Cash remaining after bills fund transfer and direct pay obligations.</div>
+    <p class="slabel">This payday</p>
+    <div class="status-card">
+      <div style="font-size:12px;color:#888">Transfer to bills account</div>
+      <div class="status-main">$${transferAmt.toFixed(2)}</div>
+      <div class="status-rows">
+        ${ddAmt>0?`<div class="status-row"><span class="lbl">🏦 Keep for DDs</span><span class="val">$${ddAmt.toFixed(2)}</span></div>`:''}
+        <div class="status-row"><span class="lbl">💳 Suggested contribution/cycle</span><span class="val">$${safePace.toFixed(2)}</span></div>
+        <div class="status-row"><span class="lbl">📊 Current balance covers ~</span><span class="val">${coverageFortnights} fortnights of bills</span></div>
+        <div class="status-row"><span class="lbl">📅 Next payday</span><span class="val">${getPayCycleDates(start,freq,1).start.format('D MMM YYYY')}</span></div>
+      </div>
     </div>
 
-    <p class="section-label">Payday Setup</p>
-    <div class="card">
-      <div class="field">
-        <label>Payday Net Pay ($)</label>
-        <input type="number" value="${pay||''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal" onchange="settings.paydayPay=parseFloat(this.value)||0;saveSettingsDebounced();renderAll();">
-      </div>
-      <div class="field-row" style="margin-top:10px">
-        <div class="field">
-          <label>Payday Date</label>
-          <input type="date" value="${pv}" onchange="settings.paydayDate=this.value;saveSettingsDebounced();renderAll();">
-        </div>
-        <div class="field">
-          <label>Pay Frequency</label>
-          <select onchange="settings.paydayFreq=this.value;saveSettingsDebounced();renderAll();">
-            <option value="weekly" ${freq==='weekly'?'selected' :''}>Weekly</option>
-            <option value="fortnightly" ${freq==='fortnightly'?'selected':''}>Fortnightly</option>
-            <option value="monthly" ${freq==='monthly'?'selected':''}>Monthly</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="margin-top:18px;display:flex;flex-direction:column;gap:9px;font-size:14px;border-top:1px solid #e8e8e0;padding-top:14px">
-        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #e8e8e0;padding-bottom:5px">
-          <span style="color:#666">💰 Take-home Pay:</span>
-          <strong>+$${pay.toFixed(2)}</strong>
-        </div>
-        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #e8e8e0;padding-bottom:5px">
-          <span style="color:#666">🛡️ Bills Fund Deposit (Safe Pace):</span>
-          <span style="color:#065f46;font-weight:600">-$${safePace.toFixed(2)}</span>
-        </div>
-        <div>
-          <div style="display:flex;justify-content:space-between;align-items:center;${directFromPayAmt>0?'border-bottom:1px dashed #e8e8e0;':''}padding-bottom:5px">
-            <span style="color:#666;flex:1">🚗 Paid From Pay (Excluded Bills):</span>
-            <span style="color:#991b1b;font-weight:600;margin-right:6px">-$${directFromPayAmt.toFixed(2)}</span>
-            ${payFromPayItems.length>0?`<button class="btn-caret" id="payFromPayBtn" onclick="togglePayFromPay()" title="Show breakdown" aria-label="Expand pay from pay breakdown"><i class="ti ti-chevron-down" id="payFromPayIcon" style="font-size:16px"></i></button>`:''}
+    <div class="collapsible-header" id="settingsHdr" onclick="toggleCollapsible('settings')">
+      <span><i class="ti ti-settings" style="margin-right:6px;vertical-align:middle"></i>Payday settings</span>
+      <i class="ti ti-chevron-down"></i>
+    </div>
+    <div class="collapsible-body" id="settingsBody">
+      <div class="card">
+        <div class="field"><label>Net pay each cycle ($)</label><input type="number" id="payInput" value="${settings.paydayPay||''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
+        <div class="settings-field-row">
+          <div class="field"><label>Payday date</label><input type="date" id="paydayInput" value="${settings.paydayDate||tod()}"></div>
+          <div class="field"><label>Frequency</label>
+            <select id="freqInput">
+              <option value="weekly" ${freq==='weekly'?'selected':''}>Weekly</option>
+              <option value="fortnightly" ${freq==='fortnightly'?'selected':''}>Fortnightly</option>
+              <option value="monthly" ${freq==='monthly'?'selected':''}>Monthly</option>
+            </select>
           </div>
-          ${payFromPayDetail}
         </div>
-        <div style="display:flex;justify-content:space-between;font-weight:700;margin-top:5px;font-size:15px">
-          <span>🎈 Disposable Income Left:</span>
-          <span style="color:${isNegative?'#ef4444':'#1e40af'}">$${disposable.toFixed(2)}</span>
-        </div>
+        <button class="btn-primary" onclick="savePaydaySettings()"><i class="ti ti-device-floppy"></i> Save settings</button>
       </div>
     </div>
 
-    <p class="section-label">Automation Summary</p>
-    <div class="grid2">
-      <div class="metric">
-        <div class="m-label">Scheduled DDs</div>
-        <div class="m-value" style="color:#1e40af">$${autoPaidDDAmt.toFixed(2)}</div>
-        <div class="m-sub">Direct debits running this cycle</div>
-      </div>
-      <div class="metric">
-        <div class="m-label">Fund Target</div>
-        <div class="m-value" style="color:#065f46">$${safePace.toFixed(2)}</div>
-        <div class="m-sub">Transfer to Bills account</div>
-      </div>
+    <div class="collapsible-header" id="lookaheadHdr" onclick="toggleCollapsible('lookahead')">
+      <span><i class="ti ti-chart-line" style="margin-right:6px;vertical-align:middle"></i>2-year lookahead</span>
+      <i class="ti ti-chevron-down"></i>
     </div>
-
-    ${largeBillsHtml}
-  `;
+    <div class="collapsible-body" id="lookaheadBody">
+      ${buildLookahead(safePace)}
+    </div>`;
 }
 
-// ─── PROJECTION PANEL ─────────────────────────────────────
-function renderProjection(safePace) {
-  if (safePace === undefined) safePace = calculateSafePace();
-  const simStart = dayjs(settings.paydayDate || tod());
-  const freq = settings.paydayFreq || 'fortnightly';
-  const balanceDate = dayjs(settings.balanceDate || tod());
-  let currentSimBalance = settings.balance || 0;
-  
-  const fundBills = bills.filter(b => !b.fundExclude);
-  
-  let odAmt = 0;
-  fundBills.forEach(b => {
-    getOverdueOccurrences(b, simStart).forEach(ds => {
-      odAmt += Math.max(getExpectedAmount(b, ds) - getAmtPaid(b, ds), 0);
-    });
-  });
-
-  const cyclesCount = freq === 'weekly' ? 104 : (freq === 'monthly' ? 24 : 52);
-
-  let html = `
-    <p class="section-label">Lookahead (2 Years)</p>
-    <div class="banner banner-blue" style="margin-bottom: 12px;">
-      <i class="ti ti-info-circle"></i> 2-year forward cash flow mapping model based on your manual updates to the Bills fund balance page.
-    </div>
-    <div class="card" style="padding: 12px; overflow-x: auto;">
-      <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 480px;">
-        <thead>
-          <tr style="border-bottom: 2px solid #e8e8e0; color: #666; font-weight: 700;">
-            <th style="padding: 8px 4px;">Payday Date</th>
-            <th style="padding: 8px 4px; text-align: right;">Contrib (+)</th>
-            <th style="padding: 8px 4px; text-align: right;">Post-Deposit Bal</th>
-            <th style="padding: 8px 4px; text-align: right;">Bills Out (-)</th>
-            <th style="padding: 8px 4px; text-align: right;">Cycle End Bal</th>
-          </tr>
-        </thead>
-        <tbody>
-  `;
-
-  for (let k = 1; k <= cyclesCount; k++) {
-    const dates = getPayCycleDates(simStart, freq, k - 1);
-    let cycleBillsTotal = 0;
-    
-    fundBills.forEach(b => {
-      occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
-        if (!isSkipped(b.id, ds)) cycleBillsTotal += getExpectedAmount(b, ds);
-      });
-    });
-
-    if (k === 1) cycleBillsTotal += odAmt;
-
-    const openingBalance = currentSimBalance;
-    const isBalanceAlreadyUpdated = k === 1 && (balanceDate.isAfter(dates.start) || balanceDate.isSame(dates.start, 'day'));
-    const appliedContribution = isBalanceAlreadyUpdated ? 0 : safePace;
-
-    const balanceAfterContribution = openingBalance + appliedContribution;
-    const finalBalance = balanceAfterContribution - cycleBillsTotal;
-    currentSimBalance = finalBalance;
-
-    html += `
-      <tr style="border-bottom: 1px solid #f0f0e8; ${finalBalance < -0.01 ? 'background: #fef2f2;' : ''}">
-        <td style="padding: 10px 4px; font-weight: 600; color: #333;">${dates.start.format('D MMM YYYY')}</td>
-        <td style="padding: 10px 4px; text-align: right; color: #065f46; font-weight: 600;">$${appliedContribution.toFixed(2)}</td>
-        <td style="padding: 10px 4px; text-align: right; color: #666;">$${balanceAfterContribution.toFixed(2)}</td>
-        <td style="padding: 10px 4px; text-align: right; color: #991b1b;">$${cycleBillsTotal.toFixed(2)}</td>
-        <td style="padding: 10px 4px; text-align: right; font-weight: 700; color: ${finalBalance < 0 ? '#ef4444' : '#166534'}">$${finalBalance.toFixed(2)}</td>
-      </tr>
-    `;
+function saveBalance(){
+  const b=parseFloat(document.getElementById('fundBalInput').value)||0;
+  const d=document.getElementById('fundDateInput').value||tod();
+  settings.balance=b;settings.balanceDate=d;
+  saveSettingsDebounced();renderAll();toast('Balance updated ✓');
+}
+function savePaydaySettings(){
+  const pay=parseFloat(document.getElementById('payInput').value)||0;
+  const date=document.getElementById('paydayInput').value;
+  const freq=document.getElementById('freqInput').value;
+  settings.paydayPay=pay;settings.paydayDate=date;settings.paydayFreq=freq;
+  saveSettingsDebounced();renderAll();toast('Settings saved ✓');
+}
+function toggleCollapsible(name){
+  const hdr=document.getElementById(name+'Hdr');
+  const body=document.getElementById(name+'Body');
+  const open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  hdr.classList.toggle('open',!open);
+}
+function buildLookahead(safePace){
+  const fundBills=bills.filter(b=>!b.fundExclude);
+  if(!fundBills.length) return '<div class="empty" style="padding:1.5rem"><i class="ti ti-list"></i>Add bills to see the lookahead</div>';
+  const freq=settings.paydayFreq||'fortnightly';
+  const simStart=dayjs(settings.paydayDate||tod());
+  const balanceDj=dayjs(settings.balanceDate||tod());
+  const balReadjust=balanceDj.isAfter(simStart)||balanceDj.isSame(simStart,'day');
+  const cyclesCount=freq==='weekly'?104:(freq==='monthly'?24:52);
+  let odAmt=0;
+  fundBills.forEach(b=>getOverdueOccurrences(b,simStart).forEach(ds=>{odAmt+=Math.max(getExpectedAmount(b,ds)-getAmtPaid(b,ds),0);}));
+  let simBal=settings.balance||0;
+  let rows='';
+  for(let k=1;k<=cyclesCount;k++){
+    const dates=getPayCycleDates(simStart,freq,k-1);let cyc=0;
+    fundBills.forEach(b=>occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{if(!isSkipped(b.id,ds))cyc+=getExpectedAmount(b,ds);}));
+    if(k===1) cyc+=odAmt;
+    const contrib=(k===1&&balReadjust)?0:safePace;
+    simBal=simBal+contrib-cyc;
+    const neg=simBal<-0.01;
+    if(cyc>0||k===1||k===cyclesCount){
+      rows+=`<tr${neg?' class="neg"':''}><td>${dates.start.format('D MMM YY')}</td><td style="color:#065f46">$${contrib.toFixed(0)}</td><td style="color:#991b1b">$${cyc.toFixed(0)}</td><td style="font-weight:700;color:${neg?'#ef4444':'#166534'}">$${simBal.toFixed(0)}</td></tr>`;
+    }
   }
-
-  html += `
-        </tbody>
-      </table>
-    </div>
-  `;
-  document.getElementById('panel-projection').innerHTML = html;
+  return `<div class="lookahead-wrap" style="margin-bottom:12px"><table class="la"><thead><tr><th>Payday</th><th>In</th><th>Out</th><th>Balance</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
-// ─── BILLS PANEL ──────────────────────────────────────────
-function changeBillsSort(criteria) {
-  settings.billsSortBy = criteria;
-  saveSettingsDebounced();
-  renderBills();
-}
-
+// ─── MY BILLS TAB ─────────────────────────────────────────────────────────────
+function changeBillsSort(c){settings.billsSortBy=c;saveSettingsDebounced();renderBills();}
 function renderBills(){
   const fundBills=bills.filter(b=>!b.fundExclude);
   const totalFn=fundBills.reduce((s,b)=>s+toFn(b.amount,b.freq),0);
   const totalYr=fundBills.reduce((s,b)=>s+toYr(b.amount,b.freq),0);
-  
   const todDj=dayjs(tod());
-  const activeSort = settings.billsSortBy || 'due';
-
-  const sorted = [...bills].sort((a, b) => {
-    if (activeSort === 'category') return (a.cat || '').localeCompare(b.cat || '');
-    if (activeSort === 'amount') return b.amount - a.amount;
-    if (activeSort === 'frequency') return (a.freq || '').localeCompare(b.freq || '');
-    const nextA = nextDueOnOrAfter(a, todDj);
-    const nextB = nextDueOnOrAfter(b, todDj);
-    return nextA.isBefore(nextB) ? -1 : (nextA.isAfter(nextB) ? 1 : 0);
+  const activeSort=settings.billsSortBy||'due';
+  const sorted=[...bills].sort((a,b)=>{
+    if(activeSort==='category') return(a.cat||'').localeCompare(b.cat||'');
+    if(activeSort==='amount') return b.amount-a.amount;
+    if(activeSort==='frequency') return(a.freq||'').localeCompare(b.freq||'');
+    const nA=nextDueOnOrAfter(a,todDj),nB=nextDueOnOrAfter(b,todDj);return nA.isBefore(nB)?-1:(nA.isAfter(nB)?1:0);
   });
 
   document.getElementById('panel-bills').innerHTML=`
-    <p class="section-label" id="addBillHeader">Add a bill</p>
+    <p class="slabel">${editingId?'Edit bill':'Add a bill'}</p>
     <div class="card" id="formContainer">
       <div class="field-row">
         <div class="field"><label>Bill name</label><input id="bName" type="text" placeholder="e.g. Rent, Netflix" autocomplete="off"></div>
@@ -732,136 +823,90 @@ function renderBills(){
       </div>
       <div class="field-row">
         <div class="field"><label>Frequency</label>
-          <select id="bFreq">
-            <option value="oneoff">One-off</option>
-            <option value="weekly">Weekly</option>
-            <option value="fortnightly" selected>Fortnightly</option>
-            <option value="6weekly">6-Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="annual">Annual</option>
-          </select>
+          <select id="bFreq"><option value="oneoff">One-off</option><option value="weekly">Weekly</option><option value="fortnightly" selected>Fortnightly</option><option value="6weekly">6-Weekly</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="annual">Annual</option></select>
         </div>
         <div class="field"><label>First due date</label><input id="bDate" type="date" value="${tod()}"></div>
       </div>
       <div class="field"><label>Category</label>
-        <select id="bCat">
-          <option value="home">🏠 Home</option><option value="utilities">⚡ Utilities</option>
-          <option value="subscriptions">📱 Subscriptions</option><option value="insurance">🛡️ Insurance</option>
-          <option value="transport">🚗 Transport</option><option value="health">❤️ Health</option><option value="other">📋 Other</option>
-        </select>
+        <select id="bCat"><option value="home">🏠 Home</option><option value="utilities">⚡ Utilities</option><option value="subscriptions">📱 Subscriptions</option><option value="insurance">🛡️ Insurance</option><option value="transport">🚗 Transport</option><option value="health">❤️ Health</option><option value="other">📋 Other</option></select>
       </div>
-      <div class="toggle-row">
-        <div class="toggle-label"><strong>Direct debit</strong><span>Auto-deducted — pre-ticked, tap to uncheck if payment fails</span></div>
-        <label class="toggle"><input type="checkbox" id="bDD"><span class="slider"></span></label>
-      </div>
-      <div class="toggle-row" style="margin-bottom:0">
-        <div class="toggle-label"><strong>Exclude from fund</strong><span>Paid directly from pay — no need to set money aside</span></div>
-        <label class="toggle"><input type="checkbox" id="bExclude"><span class="slider"></span></label>
-      </div>
+      <div class="toggle-row"><div class="toggle-label"><strong>Direct debit</strong><span>Auto-deducted — pre-ticked, tap to uncheck if payment fails</span></div><label class="toggle"><input type="checkbox" id="bDD"><span class="slider"></span></label></div>
+      <div class="toggle-row" style="margin-bottom:0"><div class="toggle-label"><strong>Exclude from fund</strong><span>Paid directly from pay — no fund contribution needed</span></div><label class="toggle"><input type="checkbox" id="bExclude"><span class="slider"></span></label></div>
       <p class="error-msg" id="bErr">Please fill in all required fields.</p>
-      <button class="btn-primary" id="addBtn" onclick="addBill()"><span class="ti ti-plus" aria-hidden="true"></span> Add bill</button>
+      <button class="btn-primary" id="addBtn" onclick="addBill()"><i class="ti ti-plus"></i> Add bill</button>
     </div>
 
-    ${bills.length>0?`<div class="grid3">
-      <div class="metric"><div class="m-label">Bills</div><div class="m-value">${bills.length}</div></div>
-      <div class="metric"><div class="m-label">Fund / fortnight</div><div class="m-value">$${totalFn.toFixed(2)}</div></div>
-      <div class="metric"><div class="m-label">Fund / year</div><div class="m-value">$${Math.round(totalYr).toLocaleString()}</div></div>
+    ${bills.length>0?`<div style="display:flex;gap:8px;margin-bottom:8px">
+      <div style="flex:1;background:#f5f5f0;border-radius:12px;padding:10px 14px">
+        <div style="font-size:11px;color:#888">Fund bills/fn</div>
+        <div style="font-size:17px;font-weight:700">$${totalFn.toFixed(2)}</div>
+      </div>
+      <div style="flex:1;background:#f5f5f0;border-radius:12px;padding:10px 14px">
+        <div style="font-size:11px;color:#888">Fund bills/yr</div>
+        <div style="font-size:17px;font-weight:700">$${Math.round(totalYr).toLocaleString()}</div>
+      </div>
     </div>`:''}
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <p class="section-label" style="margin:0">Your bills</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <p class="slabel" style="margin:0">Bills (${bills.length})</p>
       <button onclick="showBillsExport()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:#f5f5f0;border:1px solid #e0e0d8;border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;color:#555">
-        <i class="ti ti-file-text" style="font-size:14px" aria-hidden="true"></i> Export list
+        <i class="ti ti-file-text" style="font-size:13px"></i> Export list
       </button>
     </div>
     <div class="sort-bar">
-      <span class="sort-label">Sort by:</span>
-      <button class="sort-btn ${activeSort === 'due' ? 'active' : ''}" onclick="changeBillsSort('due')">Next Due</button>
-      <button class="sort-btn ${activeSort === 'category' ? 'active' : ''}" onclick="changeBillsSort('category')">Category</button>
-      <button class="sort-btn ${activeSort === 'amount' ? 'active' : ''}" onclick="changeBillsSort('amount')">Amount</button>
-      <button class="sort-btn ${activeSort === 'frequency' ? 'active' : ''}" onclick="changeBillsSort('frequency')">Frequency</button>
+      <button class="sort-btn ${activeSort==='due'?'active':''}" onclick="changeBillsSort('due')">Next Due</button>
+      <button class="sort-btn ${activeSort==='category'?'active':''}" onclick="changeBillsSort('category')">Category</button>
+      <button class="sort-btn ${activeSort==='amount'?'active':''}" onclick="changeBillsSort('amount')">Amount</button>
+      <button class="sort-btn ${activeSort==='frequency'?'active':''}" onclick="changeBillsSort('frequency')">Frequency</button>
     </div>
-
     <div class="bill-list">
-      ${sorted.length===0
-        ?`<div class="empty"><i class="ti ti-receipt" aria-hidden="true"></i>No bills yet — add your first one above</div>`
-        :sorted.map(b=>{
-          const fc=FREQ_COLORS[b.freq]||FREQ_COLORS.monthly;
-          const fn=toFn(b.amount,b.freq);
-          const nxt=nextDueOnOrAfter(b,todDj).format('D MMM YYYY');
-          return `<div class="bill-item">
-            <div class="bill-cat" style="background:${CAT_BG[b.cat]||'#f3f4f6'}">${CAT_ICONS[b.cat]||'📋'}</div>
-            <div class="bill-info">
-              <div class="bill-name">${esc(b.name)}
-                ${b.dd?`<span class="badge badge-dd"><i class="ti ti-credit-card" style="font-size:10px" aria-hidden="true"></i> DD</span>`:''}
-                ${b.fundExclude?`<span class="badge badge-exc">From pay</span>`:''}
-              </div>
-              <div class="bill-meta"><span class="badge" style="background:${fc.bg};color:${fc.color}">${FREQ_LABELS[b.freq]}</span>Next: ${nxt}</div>
-            </div>
-            <div class="bill-right">
-              <div class="bill-amt">$${b.amount.toFixed(2)}</div>
-              ${!b.fundExclude&&b.freq!=='fortnightly'&&b.freq!=='oneoff'?`<div class="bill-fn">$${fn.toFixed(2)}/fn</div>`:''}
-            </div>
-            <div style="display:flex; gap:4px; align-items:center;">
-              <button class="btn-edit" onclick="startEdit('${b.id}')" aria-label="Edit ${esc(b.name)}"><i class="ti ti-edit" aria-hidden="true"></i></button>
-              <button class="btn-del" onclick="removeBill('${b.id}')" aria-label="Remove ${esc(b.name)}"><i class="ti ti-trash" aria-hidden="true"></i></button>
-            </div>
-          </div>`;
-        }).join('')}
+      ${sorted.length===0?`<div class="empty"><i class="ti ti-receipt"></i>No bills yet — add your first one above</div>`:
+      sorted.map(b=>{
+        const fc=FREQ_COLORS[b.freq]||FREQ_COLORS.monthly;
+        const fn=toFn(b.amount,b.freq);
+        const nxt=nextDueOnOrAfter(b,todDj).format('D MMM YYYY');
+        return `<div class="bill-item">
+          <div class="bill-cat" style="background:${CAT_BG[b.cat]||'#f3f4f6'}">${CAT_ICONS[b.cat]||'📋'}</div>
+          <div class="bill-info">
+            <div class="bill-name">${esc(b.name)}${b.dd?'<span class="badge badge-dd">DD</span>':''}${b.fundExclude?'<span class="badge badge-exc">From pay</span>':''}</div>
+            <div class="bill-meta"><span class="badge" style="background:${fc.bg};color:${fc.color}">${FREQ_LABELS[b.freq]}</span> · Next: ${nxt}</div>
+          </div>
+          <div class="bill-right"><div class="bill-amt">$${b.amount.toFixed(2)}</div>${!b.fundExclude&&b.freq!=='fortnightly'?`<div class="bill-fn">$${fn.toFixed(2)}/fn</div>`:''}</div>
+          <button class="btn-edit-sm" onclick="startEdit('${b.id}')" title="Edit"><i class="ti ti-pencil" style="font-size:15px"></i></button>
+          <button class="btn-del" onclick="removeBill('${b.id}')" title="Remove"><i class="ti ti-trash" style="font-size:15px"></i></button>
+        </div>`;
+      }).join('')}
     </div>`;
 }
 
-function startEdit(id) {
-  const b = bills.find(x => x.id === id);
-  if (!b) return;
-  editingId = id;
-  switchTab('bills');
-  
-  document.getElementById('bName').value = b.name;
-  document.getElementById('bAmt').value = b.amount;
-  document.getElementById('bFreq').value = b.freq;
-  document.getElementById('bDate').value = b.date;
-  document.getElementById('bCat').value = b.cat;
-  document.getElementById('bDD').checked = b.dd;
-  document.getElementById('bExclude').checked = b.fundExclude;
-  
-  document.getElementById('addBillHeader').textContent = "Edit bill";
-  const btn = document.getElementById('addBtn');
-  btn.innerHTML = '<i class="ti ti-device-floppy" aria-hidden="true"></i> Save Changes';
-  
-  if (!document.getElementById('cancelEditBtn')) {
-    const cancelBtn = document.createElement('button');
-    cancelBtn.id = 'cancelEditBtn';
-    cancelBtn.className = 'btn-primary';
-    cancelBtn.style.background = '#aaa';
-    cancelBtn.style.marginTop = '8px';
-    cancelBtn.innerHTML = 'Cancel Edit';
-    cancelBtn.onclick = cancelEdit;
-    document.getElementById('formContainer').appendChild(cancelBtn);
+function startEdit(id){
+  const b=bills.find(x=>x.id===id);if(!b) return;
+  editingId=id;
+  document.getElementById('bName').value=b.name;
+  document.getElementById('bAmt').value=b.amount;
+  document.getElementById('bFreq').value=b.freq;
+  document.getElementById('bDate').value=b.date;
+  document.getElementById('bCat').value=b.cat||'other';
+  document.getElementById('bDD').checked=!!b.dd;
+  document.getElementById('bExclude').checked=!!b.fundExclude;
+  document.getElementById('addBtn').innerHTML='<i class="ti ti-device-floppy"></i> Save changes';
+  if(!document.getElementById('cancelEditBtn')){
+    const cb=document.createElement('button');cb.id='cancelEditBtn';cb.className='btn-primary';cb.style.background='#aaa';cb.style.marginTop='8px';cb.textContent='Cancel';cb.onclick=cancelEdit;
+    document.getElementById('formContainer').appendChild(cb);
   }
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({top:0,behavior:'smooth'});
 }
-
-function cancelEdit() {
-  editingId = null;
-  document.getElementById('bName').value = '';
-  document.getElementById('bAmt').value = '';
-  document.getElementById('bFreq').value = 'fortnightly';
-  document.getElementById('bDate').value = tod();
-  document.getElementById('bCat').value = 'home';
-  document.getElementById('bDD').checked = false;
-  document.getElementById('bExclude').checked = false;
-  
-  document.getElementById('addBillHeader').textContent = "Add a bill";
-  const btn = document.getElementById('addBtn');
-  btn.innerHTML = '<i class="ti ti-plus" aria-hidden="true"></i> Add bill';
-  btn.disabled = false;
-  
-  const cBtn = document.getElementById('cancelEditBtn');
-  if (cBtn) cBtn.remove();
+function cancelEdit(){
+  editingId=null;
+  ['bName','bAmt','bDate'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('bFreq').value='fortnightly';
+  document.getElementById('bCat').value='home';
+  document.getElementById('bDD').checked=false;
+  document.getElementById('bExclude').checked=false;
+  document.getElementById('addBtn').innerHTML='<i class="ti ti-plus"></i> Add bill';
+  document.getElementById('bDate').value=tod();
+  const cb=document.getElementById('cancelEditBtn');if(cb) cb.remove();
 }
-
 async function addBill(){
   const name=document.getElementById('bName').value.trim();
   const amount=parseFloat(document.getElementById('bAmt').value);
@@ -870,585 +915,65 @@ async function addBill(){
   const cat=document.getElementById('bCat').value;
   const dd=document.getElementById('bDD').checked;
   const fundExclude=document.getElementById('bExclude').checked;
-  const err=document.getElementById('bErr'), btn=document.getElementById('addBtn');
+  const err=document.getElementById('bErr'),btn=document.getElementById('addBtn');
   if(!name||isNaN(amount)||amount<=0||!date){err.style.display='block';return;}
-  err.style.display='none';
-  btn.disabled=true;
-
-  if (editingId) {
-    btn.innerHTML='<i class="ti ti-loader" aria-hidden="true"></i> Saving updates…';
-    const oldBill = bills.find(b => b.id === editingId);
-    
-    if (oldBill && oldBill.amount !== amount) {
-      const startDj = dayjs(oldBill.date);
-      const endDj = dayjs(tod()).subtract(1, 'day');
-      if (endDj.isAfter(startDj) || endDj.isSame(startDj)) {
-        occurrencesInRange(oldBill, startDj, endDj).forEach(ds => {
-          const key = occKey(editingId, ds);
-          if (historyAmounts[key] === undefined) {
-            historyAmounts[key] = oldBill.amount;
-          }
-        });
-      }
+  err.style.display='none';btn.disabled=true;
+  if(editingId){
+    btn.innerHTML='<i class="ti ti-loader"></i> Saving…';
+    const oldBill=bills.find(b=>b.id===editingId);
+    if(oldBill&&oldBill.amount!==amount){
+      const s=dayjs(oldBill.date),e=dayjs(tod()).subtract(1,'day');
+      if(e.isAfter(s)||e.isSame(s)) occurrencesInRange(oldBill,s,e).forEach(ds=>{const k=occKey(editingId,ds);if(historyAmounts[k]===undefined)historyAmounts[k]=oldBill.amount;});
     }
-    
     await db.doc(`users/${uid}/bills/${editingId}`).update({name,amount,freq,date,cat,dd,fundExclude});
-    const idx = bills.findIndex(b => b.id === editingId);
-    if (idx !== -1) bills[idx] = { id: editingId, name, amount, freq, date, cat, dd, fundExclude };
-    editingId = null;
-    const cBtn = document.getElementById('cancelEditBtn');
-    if (cBtn) cBtn.remove();
+    const idx=bills.findIndex(b=>b.id===editingId);if(idx!==-1)bills[idx]={id:editingId,name,amount,freq,date,cat,dd,fundExclude};
+    editingId=null;const cb=document.getElementById('cancelEditBtn');if(cb)cb.remove();
     toast('Bill updated ✓');
   } else {
-    btn.innerHTML='<i class="ti ti-loader" aria-hidden="true"></i> Saving…';
+    btn.innerHTML='<i class="ti ti-loader"></i> Saving…';
     const newId=await addBillFS({name,amount,freq,date,cat,dd,fundExclude});
     bills.push({id:newId,name,amount,freq,date,cat,dd,fundExclude});
     toast('Bill added ✓');
   }
-
-  document.getElementById('bName').value = '';
-  document.getElementById('bAmt').value = '';
-  document.getElementById('bFreq').value = 'fortnightly';
-  document.getElementById('bDate').value = tod();
-  document.getElementById('bCat').value = 'home';
-  document.getElementById('bDD').checked = false;
-  document.getElementById('bExclude').checked = false;
-  document.getElementById('addBillHeader').textContent = "Add a bill";
-  btn.innerHTML='<i class="ti ti-plus" aria-hidden="true"></i> Add bill';
-  btn.disabled = false;
-  
-  await savePaid();
-  renderAll();
+  ['bName','bAmt'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('bFreq').value='fortnightly';document.getElementById('bDate').value=tod();
+  document.getElementById('bCat').value='home';document.getElementById('bDD').checked=false;document.getElementById('bExclude').checked=false;
+  document.getElementById('addBtn').innerHTML='<i class="ti ti-plus"></i> Add bill';btn.disabled=false;
+  await savePaid();renderAll();
 }
-
 async function removeBill(id){
   if(!confirm('Remove this bill?')) return;
   await deleteBillFS(id);
   bills=bills.filter(b=>b.id!==id);
-  paidKeys   = paidKeys.filter(k=>!k.startsWith(id+'_'));
-  ddOvrKeys  = ddOvrKeys.filter(k=>!k.startsWith(id+'_'));
-  skippedKeys= skippedKeys.filter(k=>!k.startsWith(id+'_'));
-  Object.keys(paidAmounts).forEach(k => { if(k.startsWith(id+'_')) delete paidAmounts[k]; });
-  Object.keys(historyAmounts).forEach(k => { if(k.startsWith(id+'_')) delete historyAmounts[k]; });
-  await savePaid(); renderAll();
+  paidKeys=paidKeys.filter(k=>!k.startsWith(id+'_'));ddOvrKeys=ddOvrKeys.filter(k=>!k.startsWith(id+'_'));skippedKeys=skippedKeys.filter(k=>!k.startsWith(id+'_'));
+  Object.keys(paidAmounts).forEach(k=>{if(k.startsWith(id+'_'))delete paidAmounts[k];});
+  Object.keys(historyAmounts).forEach(k=>{if(k.startsWith(id+'_'))delete historyAmounts[k];});
+  await savePaid();renderAll();
 }
 
-// ─── PAYDAY PANEL ─────────────────────────────────────────
-function renderPayday(){
-  if(!bills.length){document.getElementById('panel-payday').innerHTML=`<div class="empty"><i class="ti ti-list" aria-hidden="true"></i>Add some bills in the My bills tab first</div>`;return;}
-
-  const start=dayjs(settings.paydayDate || tod());
-  const freq = settings.paydayFreq || 'fortnightly';
-  const dates = getPayCycleDates(start, freq, 0);
-
-  const fnOccs=[];
-  bills.forEach(b=>occurrencesInRange(b,dates.start,dates.end).forEach(ds=>fnOccs.push({bill:b,ds})));
-
-  const odOccs=[];
-  bills.forEach(b => {
-    getOverdueOccurrences(b, dates.start).forEach(ds => {
-      odOccs.push({bill:b, ds});
-    });
-  });
-
-  const fundOccs  = fnOccs.filter(o=>!o.bill.fundExclude);
-  const payOccs   = fnOccs.filter(o=> o.bill.fundExclude);
-  const activeFundOccs = fundOccs.filter(o=>!isSkipped(o.bill.id,o.ds));
-  const fundTotal = activeFundOccs.reduce((s,o)=>s+getExpectedAmount(o.bill,o.ds),0);
-  const payTotal  = payOccs.reduce((s,o)=>s+getExpectedAmount(o.bill,o.ds),0);
-  const fundPaid  = activeFundOccs.filter(o=>isPaidOcc(o.bill.id,o.ds)).reduce((s,o)=>s+getAmtPaid(o.bill,o.ds),0);
-  const remain    = Math.max(fundTotal-fundPaid,0);
-
-  const pendingDDTotal = activeFundOccs.filter(o=>o.bill.dd).reduce((s,o)=>{
-    const amtPaid = getAmtPaid(o.bill,o.ds);
-    return s + Math.max(getExpectedAmount(o.bill,o.ds)-amtPaid,0);
-  },0);
-  const odTotal = odOccs.reduce((s,o)=>{
-    const amtPaid = getAmtPaid(o.bill,o.ds);
-    return s + (getExpectedAmount(o.bill,o.ds)-amtPaid);
-  },0);
-
-  const ddCount      = activeFundOccs.filter(o=>o.bill.dd).length;
-  const skippedCount = fundOccs.filter(o=>isSkipped(o.bill.id,o.ds)).length;
-
-  const ddFundedAmt  = activeFundOccs.filter(o=>o.bill.dd).reduce((s,o)=>s+getExpectedAmount(o.bill,o.ds),0);
-  const totalFunded  = cachedSafePace || 0;
-  const billsFunded  = Math.max(totalFunded - ddFundedAmt, 0);
-
-  const summaryHtml=`
-    <div class="grid2">
-      <div class="metric"><div class="m-label">Total due</div><div class="m-value">$${fundTotal.toFixed(2)}</div><div class="m-sub">Fund bills this cycle</div></div>
-      <div class="metric"><div class="m-label">Total funded</div><div class="m-value">$${totalFunded.toFixed(2)}</div><div class="m-sub">Full bills fund contribution</div></div>
-      <div class="metric"><div class="m-label">DD funded</div><div class="m-value" style="color:#1e40af">$${ddFundedAmt.toFixed(2)}</div><div class="m-sub">Keep in pay account</div></div>
-      <div class="metric"><div class="m-label">Bills funded</div><div class="m-value" style="color:#065f46">$${billsFunded.toFixed(2)}</div><div class="m-sub">Transfer to bills account</div></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <span style="font-size:12px;color:#888">Still to pay this cycle</span>
-      <span style="font-size:14px;font-weight:700">$${remain.toFixed(2)}</span>
-    </div>
-    ${ddCount>0?`<div class="banner banner-blue"><i class="ti ti-credit-card" aria-hidden="true"></i>${ddCount} direct debit${ddCount>1?'s':''} running this cycle — tap to uncheck if payment fails</div>`:''}
-    ${skippedCount>0?`<div class="banner banner-grey"><i class="ti ti-ban" aria-hidden="true"></i>${skippedCount} bill${skippedCount>1?'s':''} skipped this cycle — not charged from fund</div>`:''}`;
-  
-  const odHtml=odOccs.length===0?'':
-    `<p class="section-label" style="color:#991b1b">⚠ Overdue bills</p>
-    <div class="banner banner-red"><i class="ti ti-alert-circle" aria-hidden="true"></i>$${odTotal.toFixed(2)} outstanding — included in fund shortfall</div>
-    <div class="fn-list">${odOccs.sort((a,b)=>a.ds.localeCompare(b.ds)).map(o=>{
-      const expAmt = getExpectedAmount(o.bill, o.ds);
-      const amtPaid = getAmtPaid(o.bill, o.ds);
-      const fullyPaid = isPaidOcc(o.bill.id, o.ds);
-      const partiallyPaid = !fullyPaid && amtPaid > 0 && amtPaid < expAmt;
-      const itemId = `fnitem-od-${o.bill.id}-${o.ds}`;
-      return `<div class="fn-item overdue ${fullyPaid?'paid':''}" id="${itemId}" style="${partiallyPaid ? 'border-left: 4px solid #ef4444;' : ''}">
-        <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')" aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
-          <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
-        </button>
-        <div style="flex:1;min-width:0">
-          <div class="fn-name" style="${fullyPaid?'':'color:#991b1b'}">${esc(o.bill.name)}${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}</div>
-          <div class="fn-due" style="${fullyPaid?'':'color:#ef4444'}">
-            Was due ${dayjs(o.ds).format('ddd D MMM')}
-            ${partiallyPaid ? `· <span style="font-weight:600">Paid $${amtPaid.toFixed(2)} of $${expAmt.toFixed(2)}</span>` : ' · overdue'}
-          </div>
-        </div>
-        <div class="fn-amt" style="${fullyPaid?'':'color:#991b1b'}">$${(expAmt - amtPaid).toFixed(2)}${partiallyPaid ? ' left' : ''}</div>
-        <button class="btn-partial" onclick="showBillAdjust('${o.bill.id}','${o.ds}',${expAmt},'${itemId}')" title="Record partial payment" aria-label="Enter amount paid">
-          <i class="ti ti-pencil" style="font-size:15px" aria-hidden="true"></i>
-        </button>
-      </div>`;
-    }).join('')}</div>`;
-
-  const occRow=o=>{
-    const expAmt    = getExpectedAmount(o.bill, o.ds);
-    const amtPaid   = getAmtPaid(o.bill, o.ds);
-    const skipped   = isSkipped(o.bill.id, o.ds);
-    const fullyPaid = isPaidOcc(o.bill.id, o.ds);
-    const partial   = !fullyPaid && !skipped && amtPaid > 0 && amtPaid < expAmt;
-    const adjusted  = !skipped && historyAmounts[occKey(o.bill.id,o.ds)] !== undefined;
-    const itemId    = `fnitem-${o.bill.id}-${o.ds}`;
-
-    if (skipped) {
-      return `<div class="fn-item" id="${itemId}" style="opacity:0.45;border-style:dashed">
-        <div class="chk" style="background:#e5e7eb;border-color:#e5e7eb;color:#9ca3af;cursor:default">
-          <i class="ti ti-ban" style="font-size:13px" aria-hidden="true"></i>
-        </div>
-        <div style="flex:1;min-width:0">
-          <div class="fn-name" style="text-decoration:line-through;color:#9ca3af">
-            ${esc(o.bill.name)}<span class="badge" style="background:#f3f4f6;color:#9ca3af;font-size:10px">Skipped</span>
-          </div>
-          <div class="fn-due">${dayjs(o.ds).format('ddd D MMM')} · not charged this cycle</div>
-        </div>
-        <span style="font-size:13px;color:#9ca3af;flex-shrink:0">—</span>
-        <button class="btn-partial" onclick="showBillAdjust('${o.bill.id}','${o.ds}',${o.bill.amount},'${itemId}')" title="Adjust / un-skip" aria-label="Adjust">
-          <i class="ti ti-pencil" style="font-size:15px" aria-hidden="true"></i>
-        </button>
-      </div>`;
-    }
-
-    return `<div class="fn-item ${fullyPaid?'paid':''}" id="${itemId}" style="${partial?'border-left:4px solid #639922':''}">
-      <button class="chk ${fullyPaid?'on':''}" onclick="tapPaid('${o.bill.id}','${o.ds}')"
-        aria-label="${fullyPaid?'Mark unpaid':'Mark paid'}: ${esc(o.bill.name)}">
-        <i class="ti ti-check" style="font-size:14px" aria-hidden="true"></i>
-      </button>
-      <div style="flex:1;min-width:0">
-        <div class="fn-name">
-          ${esc(o.bill.name)}
-          ${o.bill.dd?`<span class="badge badge-dd">DD</span>`:''}
-          ${adjusted?`<span class="badge" style="background:#fef3c7;color:#92400e;font-size:10px">Adjusted</span>`:''}
-        </div>
-        <div class="fn-due">
-          Due ${dayjs(o.ds).format('ddd D MMM')}
-          ${partial?`· <span style="color:#639922;font-weight:600">Paid $${amtPaid.toFixed(2)} of $${expAmt.toFixed(2)}</span>`:(o.bill.dd ? ' · direct debit scheduled' : '')}
-        </div>
-      </div>
-      <div class="fn-amt">$${(expAmt-amtPaid).toFixed(2)}${partial?' left':''}</div>
-      <button class="btn-partial" onclick="showBillAdjust('${o.bill.id}','${o.ds}',${o.bill.amount},'${itemId}')" title="Adjust amount or skip" aria-label="Adjust">
-        <i class="ti ti-pencil" style="font-size:15px" aria-hidden="true"></i>
-      </button>
-    </div>`;
-  };
-
-  const sortO=arr=>[...arr].sort((a,b)=>a.ds.localeCompare(b.ds));
-
-  const fundSection=`
-    <p class="section-label">From bills fund${fundOccs.length?` · ${fundOccs.length} bill${fundOccs.length>1?'s':''}`:''}</p>
-    ${fundOccs.length===0
-      ?`<div class="banner banner-grey" style="margin-bottom:12px"><i class="ti ti-confetti" aria-hidden="true"></i>No fund bills due this cycle 🎉</div>`
-      :`<div class="fn-list">${sortO(fundOccs).map(occRow).join('')}</div>`}`;
-
-  const paySection=payOccs.length===0?'':
-    `<p class="section-label">Paid from pay · $${payTotal.toFixed(2)}</p>
-    <div class="banner banner-grey"><i class="ti ti-cash" aria-hidden="true"></i>These come directly out of pay — no fund contribution needed</div>
-    <div class="fn-list">${sortO(payOccs).map(occRow).join('')}</div>`;
-
-  document.getElementById('panel-payday').innerHTML=summaryHtml+odHtml+fundSection+paySection;
+// ─── BILLS EXPORT ─────────────────────────────────────────────────────────────
+function showBillsExport(){
+  if(!bills.length){toast('No bills to export');return;}
+  const todDj=dayjs(tod());
+  const pad=(s,n)=>String(s).padEnd(n).slice(0,n);
+  const header=`BILLS LIST — ${todDj.format('D MMM YYYY')}\n${'─'.repeat(80)}\n${pad('Name',22)} ${pad('Freq',11)} ${pad('Amount',9)} ${pad('Next Due',14)} DD  Fund\n${'─'.repeat(80)}`;
+  const rows=[...bills].sort((a,b)=>nextDueOnOrAfter(a,todDj).isBefore(nextDueOnOrAfter(b,todDj))?-1:1).map(b=>`${pad(b.name,22)} ${pad(FREQ_LABELS[b.freq]||b.freq,11)} ${pad('$'+b.amount.toFixed(2),9)} ${pad(nextDueOnOrAfter(b,todDj).format('D MMM YYYY'),14)} ${b.dd?'DD ':'No '} ${b.fundExclude?'Excl':'Fund'}`);
+  const fb=bills.filter(b=>!b.fundExclude);
+  const summary=`${'─'.repeat(80)}\nTotal fund bills: ${fb.length} of ${bills.length}   Per fortnight: $${fb.reduce((s,b)=>s+toFn(b.amount,b.freq),0).toFixed(2)}   Per year: $${Math.round(fb.reduce((s,b)=>s+toYr(b.amount,b.freq),0)).toLocaleString()}\nCurrent balance: $${(settings.balance||0).toFixed(2)}   As of: ${settings.balanceDate||'(not set)'}   Safe pace: $${(cachedSafePace||0).toFixed(2)}/cycle`;
+  const text=[header,...rows,summary].join('\n');
+  const ov=document.createElement('div');ov.className='overlay';ov.id='billsExportOv';
+  ov.innerHTML=`<div class="overlay-card">
+    <div class="overlay-top"><h2>📋 Bills list</h2><button class="overlay-close" onclick="document.getElementById('billsExportOv').remove()">✕</button></div>
+    <textarea id="billsExportTxt" readonly style="width:100%;font-family:monospace;font-size:11px;line-height:1.5;background:#f5f5f0;border:1px solid #e8e8e0;border-radius:10px;padding:12px;resize:none;color:#1a1a18;white-space:pre" rows="16">${text}</textarea>
+    <button class="btn-primary" style="margin-top:12px" onclick="navigator.clipboard.writeText(document.getElementById('billsExportTxt').value).then(()=>toast('Copied ✓'))">
+      <i class="ti ti-copy"></i> Copy to clipboard
+    </button>
+  </div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.getElementById('billsExportOv')?.remove();document.body.appendChild(ov);
 }
 
-function showBillAdjust(billId, ds, baseAmt, itemId) {
-  const itemEl = document.getElementById(itemId);
-  if (!itemEl) return;
-  const existing = itemEl.querySelector('.fn-partial');
-  if (existing) { existing.remove(); return; }
-
-  const bill          = bills.find(b => b.id === billId);
-  const currentActual = bill ? getExpectedAmount(bill, ds) : baseAmt;
-  const alreadySkipped= isSkipped(billId, ds);
-  const k             = occKey(billId, ds);
-  const currentPaid   = bill ? getAmtPaid(bill, ds) : 0;
-
-  const div = document.createElement('div');
-  div.className = 'fn-partial';
-  div.style.cssText = 'flex-direction:column;gap:8px';
-  div.innerHTML = `
-    <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.05em;flex:0 0 100%">Adjust this occurrence</div>
-    <div style="display:flex;align-items:center;gap:8px;flex:0 0 100%">
-      <label style="font-size:12px;color:#888;flex-shrink:0">Actual amount ($)</label>
-      <input type="number" min="0" step="0.01" inputmode="decimal"
-             value="${currentActual !== baseAmt ? currentActual.toFixed(2) : ''}"
-             placeholder="${baseAmt.toFixed(2)}"
-             style="flex:1;min-width:0;height:36px;border:1px solid #e0e0d8;border-radius:8px;padding:0 10px;font-size:14px;background:#fafaf8;font-family:inherit;outline:none"
-             onkeydown="if(event.key==='Enter')setActualAmt('${billId}','${ds}',${baseAmt},this,'${itemId}')">
-      <button class="p-save" onclick="setActualAmt('${billId}','${ds}',${baseAmt},this.previousElementSibling,'${itemId}')">Set &amp; Pay</button>
-    </div>
-    ${!alreadySkipped && currentPaid > 0 && currentPaid < currentActual ? `
-    <div style="display:flex;align-items:center;gap:8px;flex:0 0 100%">
-      <label style="font-size:12px;color:#888;flex-shrink:0">Amount paid ($)</label>
-      <input type="number" min="0" step="0.01" inputmode="decimal"
-             value="${currentPaid.toFixed(2)}" placeholder="0.00"
-             style="flex:1;min-width:0;height:36px;border:1px solid #e0e0d8;border-radius:8px;padding:0 10px;font-size:14px;background:#fafaf8;font-family:inherit;outline:none"
-             id="partialInput-${k}"
-             onkeydown="if(event.key==='Enter')savePartialFromAdjust('${billId}','${ds}','${itemId}')">
-      <button class="p-save" onclick="savePartialFromAdjust('${billId}','${ds}','${itemId}')">Save partial</button>
-    </div>` : ''}
-    <div style="display:flex;gap:8px;flex:0 0 100%">
-      <button onclick="skipOccurrence('${billId}','${ds}','${itemId}')"
-        style="flex:1;height:34px;border:1px solid ${alreadySkipped?'#639922':'#e0e0d8'};border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:${alreadySkipped?'#639922':'#fafaf8'};color:${alreadySkipped?'#fff':'#555'}">
-        ${alreadySkipped?'✓ Skipped — tap to restore':'⊘ Skip this occurrence'}
-      </button>
-      <button class="p-clear" onclick="clearAdjustments('${billId}','${ds}','${itemId}')">Reset</button>
-    </div>`;
-  itemEl.appendChild(div);
-  div.querySelector('input').focus();
-  div.querySelector('input').select();
-}
-
-async function setActualAmt(billId, ds, baseAmt, inputEl, itemId) {
-  const rawVal = parseFloat(inputEl.value);
-  const amount = isNaN(rawVal) ? baseAmt : rawVal;
-  const k = occKey(billId, ds);
-  if (amount <= 0) {
-    delete historyAmounts[k];
-    delete paidAmounts[k];
-    paidKeys = paidKeys.filter(x => x !== k);
-  } else {
-    historyAmounts[k] = amount;
-    delete paidAmounts[k];
-    if (!paidKeys.includes(k)) paidKeys = [...paidKeys, k];
-    skippedKeys = skippedKeys.filter(x => x !== k);
-  }
-  renderAll();
-  try { await savePaid(); } catch(e) { console.error('setActualAmt failed:', e); }
-}
-
-async function savePartialFromAdjust(billId, ds, itemId) {
-  const inputEl = document.getElementById(`partialInput-${occKey(billId,ds)}`);
-  if (!inputEl) return;
-  const amount  = parseFloat(inputEl.value) || 0;
-  const bill    = bills.find(b => b.id === billId);
-  const expAmt  = bill ? getExpectedAmount(bill, ds) : 0;  // fixed: was 'b' (out of scope)
-  const k       = occKey(billId, ds);
-  if (amount <= 0) {
-    delete paidAmounts[k];
-    paidKeys = paidKeys.filter(x => x !== k);
-  } else if (amount >= expAmt) {
-    delete paidAmounts[k];
-    if (!paidKeys.includes(k)) paidKeys = [...paidKeys, k];
-  } else {
-    paidAmounts[k] = amount;
-    paidKeys = paidKeys.filter(x => x !== k);
-  }
-  renderAll();
-  try { await savePaid(); } catch(e) { console.error('savePartialFromAdjust failed:', e); }
-}
-
-async function skipOccurrence(billId, ds, itemId) {
-  const k = occKey(billId, ds);
-  if (skippedKeys.includes(k)) {
-    skippedKeys = skippedKeys.filter(x => x !== k);
-  } else {
-    skippedKeys = [...skippedKeys, k];
-    paidKeys    = paidKeys.filter(x => x !== k);
-    ddOvrKeys   = ddOvrKeys.filter(x => x !== k);
-    delete paidAmounts[k];
-  }
-  renderAll(); // skip changes safePace — all panels must update
-  try { await savePaid(); } catch(e) { console.error(e); }
-}
-
-async function clearAdjustments(billId, ds, itemId) {
-  const k = occKey(billId, ds);
-  delete historyAmounts[k];
-  delete paidAmounts[k];
-  paidKeys    = paidKeys.filter(x => x !== k);
-  ddOvrKeys   = ddOvrKeys.filter(x => x !== k);
-  skippedKeys = skippedKeys.filter(x => x !== k);
-  renderAll(); // adjustments affect amounts everywhere
-  try { await savePaid(); } catch(e) { console.error(e); }
-}
-
-function togglePayFromPay() {
-  const section = document.getElementById('payFromPayExpand');
-  const icon    = document.getElementById('payFromPayIcon');
-  if (!section) return;
-  const opening = section.style.display === 'none';
-  section.style.display = opening ? 'block' : 'none';
-  if (icon) icon.className = opening ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
-}
-
-// showBillsExport: format the full bills list as plain text for sharing/testing
-function showBillsExport() {
-  if (!bills.length) { toast('No bills to export'); return; }
-  const todDj = dayjs(tod());
-  const pad   = (s, n) => String(s).padEnd(n).slice(0, n);
-  const header = `BILLS LIST — exported ${todDj.format('D MMM YYYY')}\n` +
-                 `${'─'.repeat(80)}\n` +
-                 `${pad('Name', 22)} ${pad('Freq', 11)} ${pad('Amount', 9)} ${pad('Next Due', 14)} DD  Fund\n` +
-                 `${'─'.repeat(80)}`;
-  const rows = [...bills]
-    .sort((a,b) => nextDueOnOrAfter(a,todDj).isBefore(nextDueOnOrAfter(b,todDj)) ? -1 : 1)
-    .map(b => {
-      const nxt  = nextDueOnOrAfter(b, todDj).format('D MMM YYYY');
-      const fnAmt= toFn(b.amount, b.freq);
-      return `${pad(b.name, 22)} ${pad(FREQ_LABELS[b.freq]||b.freq, 11)} ${pad('$'+b.amount.toFixed(2), 9)} ${pad(nxt, 14)} ${b.dd?'DD ':'No '} ${b.fundExclude?'Excl':'Fund'}`;
-    });
-  const fundBills = bills.filter(b=>!b.fundExclude);
-  const totFn  = fundBills.reduce((s,b)=>s+toFn(b.amount,b.freq),0);
-  const totYr  = fundBills.reduce((s,b)=>s+toYr(b.amount,b.freq),0);
-  const summary= `${'─'.repeat(80)}\n` +
-                 `Total fund bills: ${fundBills.length} of ${bills.length}   ` +
-                 `Per fortnight: $${totFn.toFixed(2)}   Per year: $${Math.round(totYr).toLocaleString()}\n` +
-                 `Current balance: $${(settings.balance||0).toFixed(2)}   ` +
-                 `As of: ${settings.balanceDate||'(not set)'}   ` +
-                 `Safe pace: $${(cachedSafePace||0).toFixed(2)}/cycle`;
-  const text = [header, ...rows, summary].join('\n');
-
-  const existing = document.getElementById('billsExportOverlay');
-  if (existing) existing.remove();
-  const overlay = document.createElement('div');
-  overlay.className = 'export-overlay';
-  overlay.id = 'billsExportOverlay';
-  overlay.innerHTML = `
-    <div class="export-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <strong style="font-size:16px">📋 Bills list export</strong>
-        <button onclick="document.getElementById('billsExportOverlay').remove()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:22px;line-height:1">✕</button>
-      </div>
-      <textarea id="billsExportText" readonly
-        style="width:100%;font-family:monospace;font-size:11px;line-height:1.5;background:#f5f5f0;border:1px solid #e8e8e0;border-radius:10px;padding:12px;resize:none;color:#1a1a18;white-space:pre;"
-        rows="16">${text}</textarea>
-      <button class="btn-primary" style="margin-top:12px" onclick="navigator.clipboard.writeText(document.getElementById('billsExportText').value).then(()=>toast('Copied ✓'))">
-        <i class="ti ti-copy" aria-hidden="true"></i> Copy to clipboard
-      </button>
-    </div>`;
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-  document.body.appendChild(overlay);
-}
-
-function showExportMessage() {
-  const pay  = settings.paydayPay || 0;
-  const pv   = settings.paydayDate || tod();
-  const freq = settings.paydayFreq || 'fortnightly';
-  const sp   = cachedSafePace || calculateSafePace();
-  const start= dayjs(pv);
-  const dates= getPayCycleDates(start, freq, 0);
-
-  let fromPayAmt = 0, ddAmt = 0;
-  const ddItems = [];
-  bills.forEach(b => {
-    occurrencesInRange(b, dates.start, dates.end).forEach(ds => {
-      if (isSkipped(b.id, ds)) return;
-      const expAmt = getExpectedAmount(b, ds);
-      if (b.fundExclude) {
-        fromPayAmt += expAmt;
-      } else if (b.dd) {
-        ddAmt += expAmt;
-        ddItems.push({name: b.name, amount: expAmt, due: dayjs(ds).format('ddd D MMM')});
-      }
-    });
-  });
-  ddItems.sort((a,b) => a.due.localeCompare(b.due));
-
-  const transferAmt   = Math.max(sp - ddAmt, 0);
-  const discretionary = pay - fromPayAmt - sp;
-  const lines = [];
-  if (fromPayAmt > 0) lines.push(`  • $${fromPayAmt.toFixed(2)} for your regular payday bills.`);
-  if (ddItems.length > 0) {
-    lines.push(`  • Keep in your pay account for direct debits ($${ddAmt.toFixed(2)} total):`);
-    ddItems.forEach(d => lines.push(`      - ${d.name}: $${d.amount.toFixed(2)} (due ${d.due})`));
-  }
-  lines.push(`  • $${transferAmt.toFixed(2)} is transferred to your bills fund account.`);
-
-  const msg =
-`This pay you will receive $${pay.toFixed(2)}.
-From this you will pay:
-
-${lines.join('\n')}
-
-This leaves you with $${Math.max(discretionary, 0).toFixed(2)} for discretionary spending.`;
-
-  const existing = document.getElementById('exportOverlay');
-  if (existing) existing.remove();
-
-  const overlay = document.createElement('div');
-  overlay.className = 'export-overlay';
-  overlay.id = 'exportOverlay';
-  overlay.innerHTML = `
-    <div class="export-card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <strong style="font-size:16px">📋 Payday instructions</strong>
-        <button onclick="document.getElementById('exportOverlay').remove()" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:22px;line-height:1">✕</button>
-      </div>
-      <textarea class="export-text" readonly rows="13" id="exportText">${msg}</textarea>
-      <button class="btn-primary" style="margin-top:12px" onclick="copyExportText()">
-        <i class="ti ti-copy" aria-hidden="true"></i> Copy to clipboard
-      </button>
-    </div>`;
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-  document.body.appendChild(overlay);
-}
-
-function copyExportText() {
-  const text = document.getElementById('exportText')?.value;
-  if (!text) return;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(()=>toast('Copied ✓')).catch(()=>legacyCopy());
-  } else {
-    legacyCopy();
-  }
-  function legacyCopy() {
-    const ta = document.getElementById('exportText');
-    ta.select(); ta.setSelectionRange(0, 99999);
-    try { document.execCommand('copy'); toast('Copied ✓'); } catch(e) { toast('Select text'); }
-  }
-}
-
-// ─── FUND PANEL ───────────────────────────────────────────
-function renderFund(safePace){
-  if (safePace === undefined) safePace = calculateSafePace();
-  const balance=settings.balance||0, asOf=settings.balanceDate||tod();
-  const asOfDj=dayjs(asOf);
-
-  const setupCard=`
-    <p class="section-label">Account setup</p>
-    <div class="card">
-      <div class="field-row">
-        <div class="field"><label>Current balance ($)</label><input type="number" value="${balance||''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal" onchange="setFund('balance',parseFloat(this.value)||0)"></div>
-        <div class="field"><label>As of date</label><input type="date" value="${asOf}" onchange="setFund('balanceDate',this.value)"></div>
-      </div>
-    </div>`;
-
-  const fundBills=bills.filter(b=>!b.fundExclude);
-  if(!fundBills.length){
-    document.getElementById('panel-fund').innerHTML=setupCard+`<div class="empty"><i class="ti ti-list" aria-hidden="true"></i>${bills.length?'All bills are set to paid from pay — nothing to fund':'Add bills in the My bills tab first'}</div>`;
-    return;
-  }
-
-  const rpFreq   = settings.paydayFreq || 'fortnightly';
-  const rpStart  = dayjs(settings.paydayDate || tod());
-  const rpDates  = getPayCycleDates(rpStart, rpFreq, 0);
-
-  let rpDDAmt = 0;
-  fundBills.filter(b=>b.dd).forEach(b=>{
-    occurrencesInRange(b,rpDates.start,rpDates.end).forEach(ds=>{
-      if(!isSkipped(b.id,ds)) rpDDAmt+=getExpectedAmount(b,ds);
-    });
-  });
-  const rpBillsFunded = Math.max(safePace - rpDDAmt, 0);
-
-  const steady  =fundBills.reduce((s,b)=>s+toFn(b.amount,b.freq),0);
-  const totalLib=fundBills.reduce((s,b)=>s+currentLiab(b,asOfDj),0);
-
-  const simStart = dayjs(settings.paydayDate || tod());
-  let odAmt = 0;
-  fundBills.forEach(b=> {
-    getOverdueOccurrences(b, simStart).forEach(ds => {
-      const amtPaid = getAmtPaid(b, ds);
-      const expAmt = getExpectedAmount(b, ds);
-      if(amtPaid < expAmt){
-        odAmt += (expAmt - amtPaid);
-      }
-    });
-  });
-
-  const thisFn = safePace;
-  const behind = thisFn > (steady + 0.01);
-  const pillCls = !behind ? 'sp-g' : 'sp-r';
-  const pillTxt = !behind ? '✓ On track' : '⚠ Catching up';
-
-  document.getElementById('panel-fund').innerHTML=`
-    ${setupCard}
-    <div class="hero">
-      <div class="hero-label">Total bills fund commitment per cycle</div>
-      <div class="hero-amount">$${thisFn.toFixed(2)}</div>
-      <div class="hero-sub">
-        ${rpDDAmt > 0
-          ? `Transfer <strong style="color:#fff">$${rpBillsFunded.toFixed(2)}</strong> to bills account · Keep <strong style="color:#fff">$${rpDDAmt.toFixed(2)}</strong> in pay account for DDs`
-          : `Transfer <strong style="color:#fff">$${rpBillsFunded.toFixed(2)}</strong> to your bills account`}
-      </div>
-    </div>
-    <div class="grid2">
-      <div class="metric"><div class="m-label">Simulated pace</div><div class="m-value">$${thisFn.toFixed(2)}<span style="font-size:13px;font-weight:400;color:#888">/fn</span></div><div class="m-sub">Ensures balance ≥ $0</div></div>
-      <div class="metric"><div class="m-label">Account status</div><div class="m-value"><span class="spill ${pillCls}">${pillTxt}</span></div><div class="m-sub">${behind ? 'Clump protection active' : 'Balance is optimized'}</div></div>
-    </div>
-    <div class="grid2">
-      <div class="metric"><div class="m-label">Accrued liability</div><div class="m-value">$${totalLib.toFixed(2)}</div><div class="m-sub">Theoretical regular accrual</div></div>
-      <div class="metric"><div class="m-label">Account balance</div><div class="m-value">$${balance.toFixed(2)}</div><div class="m-sub">As of ${dayjs(asOf).format('D MMM YYYY')}</div></div>
-    </div>
-    ${odAmt>0?`<div class="banner banner-red" style="margin-bottom:12px"><i class="ti ti-alert-circle" aria-hidden="true"></i><strong>$${odAmt.toFixed(2)}</strong> in overdue unpaid bill balance added to shortfall</div>`:''}
-    <p class="section-label">Contribution plan</p>
-    <div class="card" style="padding:8px 14px">${buildTimeline(steady, thisFn)}</div>
-    <p class="section-label">Bill liability breakdown</p>
-    <div class="card" style="padding:8px 14px">
-      ${fundBills.map(b=>{
-        const lib=currentLiab(b,asOfDj);
-        const todDj=dayjs(tod());
-        const nxtDj=nextDueOnOrAfter(b,todDj);
-        const pct=b.amount>0?lib/b.amount*100:0;
-        const nxtStr=nxtDj.format('D MMM YYYY');
-        const prevDue=prevCycle(nextDueOnOrAfter(b,asOfDj),b.freq);
-        const isOvr=b.freq!=='oneoff'&&asOfDj.isAfter(prevDue)&&getAmtPaid(b, prevDue.format('YYYY-MM-DD')) < getExpectedAmount(b, prevDue.format('YYYY-MM-DD'))&&prevDue.isAfter(dayjs(b.date).subtract(1,'day'));
-        const fc=FREQ_COLORS[b.freq]||FREQ_COLORS.monthly;
-        return `<div class="lib-row">
-          <div class="lib-info">
-            <div class="lib-name">${esc(b.name)}
-              ${b.dd?`<span class="badge badge-dd" style="font-size:10px">DD</span>`:''}
-              ${isOvr?`<span class="badge" style="background:#fee2e2;color:#991b1b;font-size:10px">Overdue</span>`:''}
-            </div>
-            <div class="lib-sub">
-              <span class="badge" style="background:${fc.bg};color:${fc.color};font-size:10px">${FREQ_LABELS[b.freq]}</span>
-              · $${b.amount.toFixed(2)} · Next due: <strong>${nxtStr}</strong>
-            </div>
-          </div>
-          <div class="lib-bw"><div class="lib-b" style="width:${Math.min(pct,100).toFixed(1)}%;${isOvr?'background:#ef4444':''}"></div></div>
-          <div class="lib-r">
-            <div class="lib-amt" style="${isOvr?'color:#991b1b':''}">$${lib.toFixed(2)}</div>
-            <div class="lib-pct">${isOvr?'Overdue':Math.round(pct)+'% accrued'}</div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-    ${bills.filter(b=>b.fundExclude).length>0?`
-    <p class="section-label">Excluded from fund</p>
-    <div class="banner banner-grey" style="margin-bottom:0"><i class="ti ti-cash" aria-hidden="true"></i>${bills.filter(b=>b.fundExclude).map(b=>esc(b.name)).join(', ')} — paid directly from pay</div>`:''}`
-  ;
-}
-
-function buildTimeline(steady, currentPace){
-  const rows = [];
-  rows.push(`<div class="tl-row"><span class="tl-fn">Simulated Safe Pace</span><div class="tl-bw"><div class="tl-b" style="width:100%"></div></div><span class="tl-amt">$${currentPace.toFixed(2)}</span><span class="tl-tag tag-cu">Safe</span></div>`);
-  rows.push(`<div class="tl-row"><span class="tl-fn">Pure Long-Term Avg</span><div class="tl-bw"><div class="tl-b s" style="width:${Math.min(steady/Math.max(currentPace,1)*100,100).toFixed(1)}%"></div></div><span class="tl-amt">$${steady.toFixed(2)}</span><span class="tl-tag tag-st">Baseline</span></div>`);
-  return rows.join('');
-}
-
-function setFund(k,v){ settings[k]=v; saveSettingsDebounced(); renderAll(); }
+if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(console.error));
 </script>
 </body>
 </html>
