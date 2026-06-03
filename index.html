@@ -242,6 +242,8 @@ const TO_YR={oneoff:0,weekly:52,fortnightly:26,'6weekly':52/6,monthly:12,quarter
 let bills=[],paidKeys=[],ddOvrKeys=[],paidAmounts={},historyAmounts={},skippedKeys=[];
 let settings={balance:0,balanceDate:tod(),paydayDate:'',paydayPay:0,paydayFreq:'fortnightly',billsSortBy:'due'};
 let uid=null,db=null,saveTimer=null,editingId=null,cachedSafePace=0;
+let openCollapsibles=new Set(); // remembers which Fund-tab sections are open across re-renders
+let safePaceBinding=null;       // {k, date} of the cycle that drives the safe pace
 
 // ─── RECURRENCE ───────────────────────────────────────────────────────────────
 function addCycle(d,freq){switch(freq){case'weekly':return d.add(1,'week');case'fortnightly':return d.add(2,'week');case'6weekly':return d.add(6,'week');case'monthly':return d.add(1,'month');case'quarterly':return d.add(3,'month');case'annual':return d.add(1,'year');default:return d.add(2,'week');}}
@@ -348,15 +350,16 @@ function calculateSafePace(){
   const balReadjust=balanceDj.isAfter(simStart)||balanceDj.isSame(simStart,'day');
   let odAmt=0;
   fundBills.forEach(b=>getOverdueOccurrences(b,simStart).forEach(ds=>{odAmt+=Math.max(getExpectedAmount(b,ds)-getAmtPaid(b,ds),0);}));
-  let maxRate=0,running=0;
+  let maxRate=0,running=0,bindK=0,bindDate=null;
   for(let k=1;k<=cyclesCount;k++){
     const dates=getPayCycleDates(simStart,freq,k-1);let cyc=0;
     fundBills.forEach(b=>occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{if(!isSkipped(b.id,ds)) cyc+=getExpectedAmount(b,ds);}));
     running+=cyc;
     const denom=balReadjust?Math.max(k-1,1):k;
     const rate=(running+odAmt-balance)/denom;
-    if(rate>maxRate) maxRate=rate;
+    if(rate>maxRate){maxRate=rate;bindK=k;bindDate=dates.start;}
   }
+  safePaceBinding=(maxRate>0&&bindK>0)?{k:bindK,date:bindDate}:null;
   return Math.max(maxRate,0);
 }
 
@@ -727,6 +730,14 @@ function renderFund(safePace){
   const ss=fundBills.reduce((s,b)=>s+toFn(b.amount,b.freq),0);
   const coverageFortnights=ss>0?Math.floor(balance/ss):0;
 
+  // What's driving the contribution — the tightest future cycle
+  const bindNote=safePaceBinding&&safePaceBinding.date
+    ? `Your contribution is set by your tightest point around <strong>${safePaceBinding.date.format('MMM YYYY')}</strong>. Shuffling bills before then won't change it — only skipping bills or changing amounts will.`
+    : `Your balance already covers all upcoming bills — this is just a steady top-up.`;
+
+  const sOpen=openCollapsibles.has('settings');
+  const lOpen=openCollapsibles.has('lookahead');
+
   document.getElementById('panel-fund').innerHTML=`
     <p class="slabel">Bills account balance</p>
     <div class="balance-card">
@@ -749,13 +760,16 @@ function renderFund(safePace){
         <div class="status-row"><span class="lbl">📊 Current balance covers ~</span><span class="val">${coverageFortnights} fortnights of bills</span></div>
         <div class="status-row"><span class="lbl">📅 Next payday</span><span class="val">${getPayCycleDates(start,freq,1).start.format('D MMM YYYY')}</span></div>
       </div>
+      <div style="margin-top:12px;padding:10px 12px;background:#f0fdf4;border-radius:10px;font-size:12px;color:#3f6212;line-height:1.5">
+        <i class="ti ti-bulb" style="vertical-align:middle"></i> ${bindNote}
+      </div>
     </div>
 
-    <div class="collapsible-header" id="settingsHdr" onclick="toggleCollapsible('settings')">
+    <div class="collapsible-header ${sOpen?'open':''}" id="settingsHdr" onclick="toggleCollapsible('settings')">
       <span><i class="ti ti-settings" style="margin-right:6px;vertical-align:middle"></i>Payday settings</span>
       <i class="ti ti-chevron-down"></i>
     </div>
-    <div class="collapsible-body" id="settingsBody">
+    <div class="collapsible-body ${sOpen?'open':''}" id="settingsBody">
       <div class="card">
         <div class="field"><label>Net pay each cycle ($)</label><input type="number" id="payInput" value="${settings.paydayPay||''}" placeholder="0.00" min="0" step="0.01" inputmode="decimal"></div>
         <div class="settings-field-row">
@@ -772,11 +786,11 @@ function renderFund(safePace){
       </div>
     </div>
 
-    <div class="collapsible-header" id="lookaheadHdr" onclick="toggleCollapsible('lookahead')">
+    <div class="collapsible-header ${lOpen?'open':''}" id="lookaheadHdr" onclick="toggleCollapsible('lookahead')">
       <span><i class="ti ti-chart-line" style="margin-right:6px;vertical-align:middle"></i>2-year lookahead</span>
       <i class="ti ti-chevron-down"></i>
     </div>
-    <div class="collapsible-body" id="lookaheadBody">
+    <div class="collapsible-body ${lOpen?'open':''}" id="lookaheadBody">
       ${buildLookahead(safePace)}
     </div>`;
 }
@@ -800,6 +814,7 @@ function toggleCollapsible(name){
   const open=body.classList.contains('open');
   body.classList.toggle('open',!open);
   hdr.classList.toggle('open',!open);
+  if(open) openCollapsibles.delete(name); else openCollapsibles.add(name);
 }
 function buildLookahead(safePace){
   const fundBills=bills.filter(b=>!b.fundExclude);
@@ -820,11 +835,13 @@ function buildLookahead(safePace){
     const contrib=(k===1&&balReadjust)?0:safePace;
     simBal=simBal+contrib-cyc;
     const neg=simBal<-0.01;
-    if(cyc>0||k===1||k===cyclesCount){
-      rows+=`<tr${neg?' class="neg"':''}><td>${dates.start.format('D MMM YY')}</td><td style="color:#065f46">$${contrib.toFixed(0)}</td><td style="color:#991b1b">$${cyc.toFixed(0)}</td><td style="font-weight:700;color:${neg?'#ef4444':'#166534'}">$${simBal.toFixed(0)}</td></tr>`;
+    const isBind=safePaceBinding&&safePaceBinding.k===k;
+    if(cyc>0||k===1||k===cyclesCount||isBind){
+      rows+=`<tr${neg?' class="neg"':''}${isBind?' style="background:#fffbeb"':''}><td>${dates.start.format('D MMM YY')}${isBind?' 🎯':''}</td><td style="color:#065f46">$${contrib.toFixed(0)}</td><td style="color:#991b1b">$${cyc.toFixed(0)}</td><td style="font-weight:700;color:${neg?'#ef4444':'#166534'}">$${simBal.toFixed(0)}</td></tr>`;
     }
   }
-  return `<div class="lookahead-wrap" style="margin-bottom:12px"><table class="la"><thead><tr><th>Payday</th><th>In</th><th>Out</th><th>Balance</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const legend=safePaceBinding?`<div style="font-size:11px;color:#888;margin-top:6px">🎯 = the tightest cycle that sets your contribution rate</div>`:'';
+  return `<div class="lookahead-wrap" style="margin-bottom:6px"><table class="la"><thead><tr><th>Payday</th><th>In</th><th>Out</th><th>Balance</th></tr></thead><tbody>${rows}</tbody></table></div>${legend}`;
 }
 
 // ─── MY BILLS TAB ─────────────────────────────────────────────────────────────
