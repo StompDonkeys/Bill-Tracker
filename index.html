@@ -651,27 +651,55 @@ function showExportMessage(){
   const pay=settings.paydayPay||0,pv=settings.paydayDate||tod(),freq=settings.paydayFreq||'fortnightly';
   const sp=cachedSafePace||calculateSafePace();
   const start=dayjs(pv),dates=getPayCycleDates(start,freq,0);
-  let fromPayAmt=0,ddAmt=0;const ddItems=[];
+
+  let fromPayAmt=0,ddAmt=0,fundAmt=0;
+  const ddItems=[],fromPayItems=[],fundItems=[];
+
   bills.forEach(b=>occurrencesInRange(b,dates.start,dates.end).forEach(ds=>{
     if(isSkipped(b.id,ds)) return;
     const a=getExpectedAmount(b,ds);
-    if(b.fundExclude) fromPayAmt+=a;
-    else if(b.dd){ddAmt+=a;ddItems.push({name:b.name,amount:a,due:dayjs(ds).format('ddd D MMM')});}
+    const due=dayjs(ds).format('ddd D MMM');
+    if(b.fundExclude){
+      fromPayAmt+=a;
+      fromPayItems.push({name:b.name,amount:a,due,dd:b.dd});
+    } else if(b.dd){
+      ddAmt+=a;
+      ddItems.push({name:b.name,amount:a,due});
+    } else {
+      fundAmt+=a;
+      fundItems.push({name:b.name,amount:a,due});
+    }
   }));
+
   ddItems.sort((a,b)=>a.due.localeCompare(b.due));
+  fromPayItems.sort((a,b)=>a.due.localeCompare(b.due));
+  fundItems.sort((a,b)=>a.due.localeCompare(b.due));
+
   const transfer=Math.max(sp-ddAmt,0),disc=pay-fromPayAmt-sp;
   const lines=[];
-  if(fromPayAmt>0) lines.push(`  • $${fromPayAmt.toFixed(2)} for your regular payday bills.`);
+
+  if(fromPayItems.length>0){
+    lines.push(`  • $${fromPayAmt.toFixed(2)} paid directly from your pay account:`);
+    fromPayItems.forEach(d=>lines.push(`      - ${d.name}: $${d.amount.toFixed(2)} (due ${d.due})${d.dd?' — DD':''}`));
+  }
+
   if(ddItems.length>0){
-    lines.push(`  • Keep in your pay account for direct debits ($${ddAmt.toFixed(2)} total):`);
+    lines.push(`  • Keep $${ddAmt.toFixed(2)} in your pay account for direct debits:`);
     ddItems.forEach(d=>lines.push(`      - ${d.name}: $${d.amount.toFixed(2)} (due ${d.due})`));
   }
-  lines.push(`  • $${transfer.toFixed(2)} is transferred to your bills fund account.`);
-  const msg=`This pay you will receive $${pay.toFixed(2)}.\nFrom this you will pay:\n\n${lines.join('\n')}\n\nThis leaves you with $${Math.max(disc,0).toFixed(2)} for discretionary spending.`;
+
+  lines.push(`  • Transfer $${transfer.toFixed(2)} to your bills fund account.`);
+  if(fundItems.length>0){
+    lines.push(`    Bills covered from the fund this cycle:`);
+    fundItems.forEach(d=>lines.push(`      - ${d.name}: $${d.amount.toFixed(2)} (due ${d.due})`));
+  }
+
+  const msg=`This pay you will receive $${pay.toFixed(2)}.\nFrom this:\n\n${lines.join('\n')}\n\nThis leaves you with $${Math.max(disc,0).toFixed(2)} for discretionary spending.`;
+  const rows=msg.split('\n').length+2;
   const ov=document.createElement('div');ov.className='overlay';ov.id='exportOv';
   ov.innerHTML=`<div class="overlay-card">
     <div class="overlay-top"><h2>📋 Payday instructions</h2><button class="overlay-close" onclick="document.getElementById('exportOv').remove()">✕</button></div>
-    <textarea class="export-text" readonly rows="13" id="exportTxt">${msg}</textarea>
+    <textarea class="export-text" readonly rows="${Math.min(rows,22)}" id="exportTxt">${msg}</textarea>
     <button class="btn-primary" style="margin-top:12px" onclick="navigator.clipboard.writeText(document.getElementById('exportTxt').value).then(()=>toast('Copied ✓'))">
       <i class="ti ti-copy"></i> Copy to clipboard
     </button>
